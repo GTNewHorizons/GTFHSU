@@ -1,0 +1,16 @@
+[
+{
+  "modid": "GTSU",
+  "name": "GTSU Mod",
+  "description": "GTSU. Energy Storageblocks for GregTech energy tiers",
+  "version": "1.0.0",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["Namikon"],
+  "credits": "xbony, for creating AFSU, the mod that I used to create this one ",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]

@@ -1,14 +1,9 @@
-package xbony2.afsu.blocks;
+package eu.usrv.gtsu.blocks;
 
-import net.minecraft.block.BlockPistonBase;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.Item;
-import net.minecraft.util.ChatComponentTranslation;
-import xbony2.afsu.AFSUMod;
-import xbony2.afsu.ConfigHandler;
-import xbony2.afsu.tileentity.TileEntityAFSU;
+import java.util.List;
+
+import org.apache.logging.log4j.Level;
+
 import ic2.api.item.IC2Items;
 import ic2.api.tile.IWrenchable;
 import ic2.core.IC2;
@@ -17,11 +12,16 @@ import ic2.core.block.wiring.TileEntityElectricBlock;
 import ic2.core.util.StackUtil;
 import ic2.core.util.Util;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockPistonBase;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.EnumCreatureType;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.IInventory;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -29,24 +29,82 @@ import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
+import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import eu.usrv.gtsu.GTSUMod;
+import eu.usrv.gtsu.TierHelper;
+import eu.usrv.gtsu.tileentity.TileEntityGTSU;
 
-import java.util.List;
+public class GTSUBlock extends Block{
 
-public class AFSUBlock extends Block{
-
+    @Override
+    public void getSubBlocks(Item item, CreativeTabs tab, List stackList) {
+        ItemStack zeroStack = new ItemStack(this, 1, _mTier);
+        StackUtil.getOrCreateNbtData(zeroStack).setLong(TileEntityGTSU.NBTVAL_ENERGY, 0);
+        StackUtil.getOrCreateNbtData(zeroStack).setInteger(TileEntityGTSU.NBTVAL_TIER, _mTier);
+        stackList.add(zeroStack);
+        ItemStack fullStack = new ItemStack(this, 1, _mTier + 100);
+        StackUtil.getOrCreateNbtData(fullStack).setLong(TileEntityGTSU.NBTVAL_ENERGY, TierHelper.getMaxStorageForTier(_mTier));
+        StackUtil.getOrCreateNbtData(fullStack).setInteger(TileEntityGTSU.NBTVAL_TIER, _mTier);
+        stackList.add(fullStack);
+    }
+	
+	@Override
+	public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int var6, float var7, float var8, float var9){
+        if (player.getCurrentEquippedItem() == IC2Items.getItem("wrench") || player.getCurrentEquippedItem() == IC2Items.getItem("electricWrench")) {
+            return true;
+        }
+		if (!player.isSneaking()) {
+            player.openGui(GTSUMod.instance, 0, world, x, y, z);
+            return true;
+        }
+        return false;
+    }
+    
+	@Override
+	@SideOnly(Side.CLIENT)
+	public void registerBlockIcons(IIconRegister register){
+		this.top = register.registerIcon(String.format("GTSU:GTSU_top_tier%d", _mTier));
+		this.output = register.registerIcon(String.format("GTSU:GTSU_output_tier%d", _mTier));
+		this.input = register.registerIcon(String.format("GTSU:GTSU_input_tier%d", _mTier));
+	}
+	
+	@Override
+	public final TileEntity createTileEntity(World world, int metadata) {
+		//FMLLog.log(Level.INFO, "createTileEntity called: %d", _mTier);
+	    return new TileEntityGTSU(_mTier);
+	}
+    
     @SideOnly(Side.CLIENT)
-    private IIcon top, output, input;
+    protected IIcon top, output, input;
+	private int _mTier;
 
-	public AFSUBlock() {
+	public GTSUBlock(int pTier) {
 		super(Material.iron);
+		_mTier = pTier;
+		this.setBlockName(String.format("GTSU_Tier_%d", _mTier));
 		this.setCreativeTab(IC2.tabIC2);
 		this.setHardness(1.5F);
 		this.setStepSound(soundTypeMetal);
-		this.setBlockName("AFSU");
 	}
 
+    @Override
+    public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase entityliving, ItemStack itemStack){
+        TileEntity tile = world.getTileEntity(x, y, z);
+        if (tile instanceof TileEntityGTSU) {
+        	TileEntityGTSU tGTSU = (TileEntityGTSU)tile;
+            NBTTagCompound nbt = StackUtil.getOrCreateNbtData(itemStack);
+            tGTSU.mEnergy = nbt.getLong(TileEntityGTSU.NBTVAL_ENERGY);
+            tGTSU.mTier = nbt.getInteger(TileEntityGTSU.NBTVAL_TIER);
+            if (entityliving == null) {
+            	tGTSU.setFacing(convertIntegerToShort(1));
+            } else {
+            	tGTSU.setFacing(convertIntegerToShort(BlockPistonBase.determineOrientation(world, x, y, z, entityliving)));
+            }
+        }
+    }
+	
 	/**
 	 * World only
 	 */
@@ -143,19 +201,12 @@ public class AFSUBlock extends Block{
     	}
 	}
 
-	@Override
-	@SideOnly(Side.CLIENT)
-	public void registerBlockIcons(IIconRegister register){
-		this.top = register.registerIcon("AFSU" + ":" + "AFSU_top_" + ConfigHandler.afsutexture);
-		this.output = register.registerIcon("AFSU" + ":" + "AFSU_output_" + ConfigHandler.afsutexture);
-		this.input = register.registerIcon("AFSU" + ":" + "AFSU_input_" + ConfigHandler.afsutexture);
-	}
 
 	@Override
 	public int isProvidingWeakPower(IBlockAccess blockAccess, int x, int y, int z, int side) {
         TileEntity tile = blockAccess.getTileEntity(x, y, z);
-        if (tile instanceof TileEntityElectricBlock) {
-            return ((TileEntityElectricBlock)tile).isEmittingRedstone() ? 15 : 0;
+        if (tile instanceof TileEntityGTSU) {
+            return ((TileEntityGTSU)tile).isEmittingRedstone() ? 15 : 0;
         }
         return super.isProvidingWeakPower(blockAccess, x, y, z, side);
 	}
@@ -175,22 +226,9 @@ public class AFSUBlock extends Block{
 	    return true;
 	}
 
-    @Override
-    public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase entityliving, ItemStack itemStack){
-        TileEntity tile = world.getTileEntity(x, y, z);
-        if (tile instanceof TileEntityElectricBlock) {
-            TileEntityElectricBlock electricBlock = (TileEntityElectricBlock)tile;
-            NBTTagCompound nbt = StackUtil.getOrCreateNbtData(itemStack);
-            electricBlock.energy = nbt.getDouble("energy");
-            if (entityliving == null) {
-                electricBlock.setFacing(convertIntegerToShort(1));
-            } else {
-                electricBlock.setFacing(convertIntegerToShort(BlockPistonBase.determineOrientation(world, x, y, z, entityliving)));
-            }
-        }
-    }
 
-    private static short convertIntegerToShort(int integer_n) {
+
+    protected static short convertIntegerToShort(int integer_n) {
         return new Integer(integer_n).shortValue();
     }
 
@@ -202,9 +240,9 @@ public class AFSUBlock extends Block{
 	@Override
 	public int getComparatorInputOverride(World world, int x, int y, int z, int side){
         TileEntity tile = world.getTileEntity(x, y, z);
-        if (tile instanceof TileEntityElectricBlock) {
-            TileEntityElectricBlock teb = (TileEntityElectricBlock) tile;
-            return new Long(Math.round(Util.map(teb.energy, teb.maxStorage, 15.0D))).intValue();
+        if (tile instanceof TileEntityGTSU) {
+        	TileEntityGTSU teb = (TileEntityGTSU) tile;
+            return new Long(Math.round(Util.map(teb.mEnergy, teb.mMaxStorage, 15.0D))).intValue();
         }
         return super.getComparatorInputOverride(world, x, y, z, side);
     }
@@ -237,32 +275,6 @@ public class AFSUBlock extends Block{
 	    return false;
 	}
 
-	@Override
-	public final TileEntity createTileEntity(World world, int metadata) {
-	    return new TileEntityAFSU();
-	}
-
-	@Override
-	public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int var6, float var7, float var8, float var9){
-        if (player.getCurrentEquippedItem() == IC2Items.getItem("wrench") || player.getCurrentEquippedItem() == IC2Items.getItem("electricWrench")) {
-            return true;
-        }
-		if (!player.isSneaking()) {
-            player.openGui(AFSUMod.instance, 0, world, x, y, z);
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public void getSubBlocks(Item item, CreativeTabs tab, List stackList) {
-        ItemStack zeroStack = new ItemStack(this, 1, 0);
-        StackUtil.getOrCreateNbtData(zeroStack).setInteger("energy", 0);
-        stackList.add(zeroStack);
-        ItemStack fullStack = new ItemStack(this, 1, 1);
-        StackUtil.getOrCreateNbtData(fullStack).setInteger("energy", TileEntityAFSU.MAX_STORAGE);
-        stackList.add(fullStack);
-    }
 
     @Override
     public void breakBlock(World world, int xCoord, int yCoord, int zCoord, Block block, int par6) {

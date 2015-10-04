@@ -1,6 +1,5 @@
-GTFHSU
+GTSU
 ====
 
-GregTech F*ng Huge Storage Unit
-
-Based on the awesome mod AFSU from xbony2, converted to GregTech energy system for GT5, to add the missing simple EnergyBuffer Blocks for all Voltage Tiers, and the missing IDSU
+Based on the awesome mod from xbony2 (AFSU), added all the tiers for GregTech machines, and increased the
+amount of EU that can be stored to... a lot. 

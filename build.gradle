@@ -17,14 +17,16 @@ buildscript {
 
 apply plugin: 'forge'
 
-version = newAFSUVersion
-group = "com.xbony2.AFSU"
-archivesBaseName = "AFSU"
+version = "1.7.10-1.0.0"
+group = "eu.usrv.GTSU"
+archivesBaseName = "GTSU"
 
 minecraft {
     version = forgeVersion
 	runDir = "eclipse"
-    replace "@VERSION@", project.version
+
+    replaceIn "src/main/java/xbony2/afsu/GTSUMod.java"
+    replace "GRADLETOKEN_VERSION", project.version.split('-')[1]
 }
 
 repositories {
@@ -40,7 +42,9 @@ dependencies {
 
 
 processResources {
-    inputs.property "version", project.version
+    def cleanVersion = project.version.split('-')[1]
+    
+    inputs.property "version", cleanVersion
     inputs.property "mcversion", project.minecraft.version
     from(sourceSets.main.resources.srcDirs) {
         include 'mcmod.info'
