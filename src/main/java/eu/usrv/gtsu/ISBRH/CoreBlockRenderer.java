@@ -19,7 +19,6 @@ public class CoreBlockRenderer implements ISimpleBlockRenderingHandler {
 	@Override
 	public void renderInventoryBlock(Block block, int metadata, int modelId,
 			RenderBlocks renderer) {
-		// TODO Auto-generated method stub
 
 	}
 
@@ -30,53 +29,28 @@ public class CoreBlockRenderer implements ISimpleBlockRenderingHandler {
 		ClientProxy tProxy = (ClientProxy)GTSUMod.proxy;
 		
 		CoreBlock tBlock = (CoreBlock)block;
-		//which render pass are we doing?
-		FMLLog.log(Level.INFO, "RenderPass: %d", tProxy.renderPass);
 		if(tProxy.renderPass == 0)
 		{
-			IIcon tBackgroundLayer = tBlock.getAlpaIcon();
-			float u = tBackgroundLayer.getMinU();
-			float v = tBackgroundLayer.getMinV();
-			float U = tBackgroundLayer.getMaxU();
-			float V = tBackgroundLayer.getMaxV();
+			renderer.renderStandardBlockWithAmbientOcclusion(block, x, y, z, 1, 1, 1);
 			
-			Tessellator tes = Tessellator.instance;
-			tes.addTranslation(x, y, z);
-			
-			tes.addVertexWithUV(0, 1, 1, u, v);
-			tes.addVertexWithUV(1, 1, 1, u, V);
-			tes.addVertexWithUV(1, 1, 0, U, V);
-			tes.addVertexWithUV(0, 1, 0, U, v);
-			
-			tes.addTranslation(-x, -y, -z);
-			FMLLog.log(Level.INFO, "RenderPass 0");
-		}
-		else                    
-		{
-			IIcon tBackgroundLayer = tBlock.getNormalIcon();
-			float u = tBackgroundLayer.getMinU();
-			float v = tBackgroundLayer.getMinV();
-			float U = tBackgroundLayer.getMaxU();
-			float V = tBackgroundLayer.getMaxV();
-			
-			Tessellator tes = Tessellator.instance;
-			tes.addTranslation(x, y, z);
-			
-			tes.addVertexWithUV(0, 1, 1, u, v);
-			tes.addVertexWithUV(1, 1, 1, u, V);
-			tes.addVertexWithUV(1, 1, 0, U, V);
-			tes.addVertexWithUV(0, 1, 0, U, v);
-			
-			tes.addTranslation(-x, -y, -z);
-			FMLLog.log(Level.INFO, "RenderPass 1");
+			IIcon ico = tBlock.getAlpaIcon();
+//			Tessellator tes = Tessellator.instance;
+//			tes.setBrightness(240);
+//			tes.setColorOpaque_F(255, 255, 255);
+			renderer.renderFaceXNeg(block, x, y, z, ico);
+			renderer.renderFaceXPos(block, x, y, z, ico);
+			renderer.renderFaceYNeg(block, x, y, z, ico);
+			renderer.renderFaceYPos(block, x, y, z, ico);
+			renderer.renderFaceZNeg(block, x, y, z, ico);
+			renderer.renderFaceZPos(block, x, y, z, ico);
+
 		}
 
-		return false;
+		return true;
 	}
 
 	@Override
 	public boolean shouldRender3DInInventory(int modelId) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 

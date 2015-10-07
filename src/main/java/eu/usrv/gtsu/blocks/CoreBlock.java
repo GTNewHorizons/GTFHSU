@@ -67,7 +67,7 @@ public class CoreBlock extends Block {
 	public IIcon getIcon(IBlockAccess w, int x, int y, int z,
 			int side) {
 
-		return icDefault;
+		return icAnimation;
 	}
 
 	@Override
