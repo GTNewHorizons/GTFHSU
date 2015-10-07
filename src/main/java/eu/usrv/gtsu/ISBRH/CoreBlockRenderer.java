@@ -77,7 +77,10 @@ public class CoreBlockRenderer implements ISimpleBlockRenderingHandler {
 			int tMeta = pWorld.getBlockMetadata(x, y, z);
 			if (tMeta > 0)
 			{
+				Tessellator v5 = Tessellator.instance;
 				IIcon ico = tBlock.getAlpaIcon();
+				v5.setBrightness(240);
+				v5.setColorOpaque_F(255, 255, 255);
 				renderer.renderFaceXNeg(block, x, y, z, ico);
 				renderer.renderFaceXPos(block, x, y, z, ico);
 				renderer.renderFaceYNeg(block, x, y, z, ico);

@@ -1,6 +1,9 @@
 package eu.usrv.gtsu.blocks;
 
+import org.apache.logging.log4j.Level;
+
 import ic2.core.IC2;
+import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import eu.usrv.gtsu.GTSUMod;
@@ -30,6 +33,19 @@ public class CoreBlock extends Block {
 		return false;
 	}
 
+	@Override
+	public void onBlockClicked(net.minecraft.world.World world, int x, int y, int z, net.minecraft.entity.player.EntityPlayer player) 
+	{
+		if (!GTSUMod.developerMode)
+			return;
+		
+		int tCurrMeta = world.getBlockMetadata(x, y, z);
+		tCurrMeta++;
+		if (tCurrMeta >= 15)
+			tCurrMeta = 0;
+		world.setBlockMetadataWithNotify(x, y, z, tCurrMeta, 3);
+	};
+	
 	@SideOnly(Side.CLIENT)
 	@Override
 	public int getRenderType() {
@@ -46,7 +62,7 @@ public class CoreBlock extends Block {
 	@Override
 	public void registerBlockIcons(IIconRegister r)
 	{
-		icAlpha = r.registerIcon("GTSU:multiblock/core_alpha");
+		icAlpha = r.registerIcon("GTSU:multiblock/coreblock/core_alpha");
 		
 		for (int i = 0; i < 16; i++)		
 			icAnimations[i] = r.registerIcon(String.format("GTSU:multiblock/coreblock/core_underlay_%d", i));

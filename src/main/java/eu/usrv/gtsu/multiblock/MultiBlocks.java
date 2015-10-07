@@ -163,7 +163,7 @@ public class MultiBlocks extends Block {
 		icHousing = new IIcon[_mSides.length];
 		icGlass = new IIcon[_mSides.length];
 
-		icGlassTransparent = pIReg.registerIcon("GTSU:multiblock/glass_transparent");
+		icGlassTransparent = pIReg.registerIcon("GTSU:multiblock/glass/glass_transparent");
 		
 		for (int i = 0; i < _mSides.length; i++)
 		{
