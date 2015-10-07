@@ -11,7 +11,7 @@ import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.registry.GameRegistry;
 import eu.usrv.gtsu.blocks.CoreBlock;
 import eu.usrv.gtsu.blocks.GTSUBlock;
-import eu.usrv.gtsu.blocks.ItemBlockGTSU;
+import eu.usrv.gtsu.blocks.itemblocks.ItemBlockGTSU;
 import eu.usrv.gtsu.gui.GuiHandler;
 import eu.usrv.gtsu.multiblock.MultiBlockItemBlock;
 import eu.usrv.gtsu.multiblock.MultiBlocks;

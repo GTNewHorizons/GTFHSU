@@ -167,8 +167,8 @@ public class MultiBlocks extends Block {
 		
 		for (int i = 0; i < _mSides.length; i++)
 		{
-			icHousing[i] = pIReg.registerIcon(String.format("GTSU:multiblock/housing_%s", _mSides[i]));
-			icGlass[i] = pIReg.registerIcon(String.format("GTSU:multiblock/glass_%s", _mSides[i]));
+			icHousing[i] = pIReg.registerIcon(String.format("GTSU:multiblock/housing/housing_%s", _mSides[i]));
+			icGlass[i] = pIReg.registerIcon(String.format("GTSU:multiblock/glass/glass_%s", _mSides[i]));
 		}
 
 		icCore = pIReg.registerIcon("GTSU:multiblock_core");

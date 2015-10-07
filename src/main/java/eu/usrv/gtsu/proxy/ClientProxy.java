@@ -21,6 +21,5 @@ public class ClientProxy extends CommonProxy {
 		CoreBlockRenderer tMyRenderer = new CoreBlockRenderer();
 		
 		RenderingRegistry.registerBlockHandler(coreBlockRenderType, tMyRenderer);
-		FMLLog.log(Level.INFO, "Renderer registered!");
 	}
 }

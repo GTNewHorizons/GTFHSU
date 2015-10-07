@@ -15,8 +15,7 @@ public class CoreBlock extends Block {
 
 	@SideOnly(Side.CLIENT)
 	protected IIcon icAlpha;
-	protected IIcon icAnimation;
-	protected IIcon icDefault;
+	protected IIcon[] icAnimations = new IIcon[16];
 
 	public CoreBlock(Material m) {
 		super(m);
@@ -37,19 +36,20 @@ public class CoreBlock extends Block {
 		return ((ClientProxy)GTSUMod.proxy).coreBlockRenderType;
 	}
 
+	@Override
+	public int damageDropped(int pMetadata)
+	{ // Always drop the black block
+		return 0;
+	}
+	
 	@SideOnly(Side.CLIENT)
 	@Override
-	public void registerBlockIcons(IIconRegister r) {
-
-		icDefault = r.registerIcon("GTSU:multiblock/core");
-		icAlpha = r.registerIcon("GTSU:multiblock/core_alpha");
-		icAnimation = r.registerIcon("GTSU:multiblock/core_underlay_empty");
-
-	}
-
-	public IIcon getNormalIcon()
+	public void registerBlockIcons(IIconRegister r)
 	{
-		return icDefault;
+		icAlpha = r.registerIcon("GTSU:multiblock/core_alpha");
+		
+		for (int i = 0; i < 16; i++)		
+			icAnimations[i] = r.registerIcon(String.format("GTSU:multiblock/coreblock/core_underlay_%d", i));
 	}
 	
 	public IIcon getAlpaIcon()
@@ -57,33 +57,26 @@ public class CoreBlock extends Block {
 		return icAlpha;
 	}
 	
-	public IIcon getAnimationIcon()
-	{
-		return icAnimation;
-	}
-	
 	@SideOnly(Side.CLIENT)
 	@Override
-	public IIcon getIcon(IBlockAccess w, int x, int y, int z,
-			int side) {
-
-		return icAnimation;
+	public IIcon getIcon(int pSide, int pMeta)
+	{
+		return icAnimations[pMeta];
 	}
 
 	@Override
 	public boolean isOpaqueCube() {
-		return false;
+		return true;
 	}
 
 	@Override
 	public int getRenderBlockPass() {
-		return 1;
+		return 0;
 	}
 
 	@SideOnly(Side.CLIENT)
 	@Override
 	public boolean canRenderInPass(int pass) {
-		((ClientProxy)GTSUMod.proxy).renderPass = pass;
-		return true;
+		return (pass==0);
 	}
 }

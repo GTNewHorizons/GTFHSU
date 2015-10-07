@@ -1,4 +1,4 @@
-package eu.usrv.gtsu.blocks;
+package eu.usrv.gtsu.blocks.itemblocks;
 
 import java.util.List;
 
