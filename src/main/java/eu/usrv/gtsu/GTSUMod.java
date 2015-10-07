@@ -1,5 +1,6 @@
 package eu.usrv.gtsu;
 
+import net.minecraft.block.material.Material;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.Mod.Instance;
@@ -39,11 +40,13 @@ public class GTSUMod {
         	GameRegistry.registerBlock(new GTSUBlock(i), ItemBlockGTSU.class, String.format("GTSU_Tier_%d", i));
         }
         GameRegistry.registerBlock(new MultiBlocks(), MultiBlockItemBlock.class, String.format("GTSU_MultiBlock"));
+        GameRegistry.registerBlock(new CoreBlock(Material.iron), "CoreBlock");
         
 	}
 
 	@EventHandler
 	public void init(FMLInitializationEvent event){
+		proxy.setCustomRenderers();
         NetworkRegistry.INSTANCE.registerGuiHandler(GTSUMod.instance, new GuiHandler());
 	}
 }

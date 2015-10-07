@@ -1,20 +1,26 @@
 package eu.usrv.gtsu.proxy;
 
+import org.apache.logging.log4j.Level;
+
 import cpw.mods.fml.client.registry.RenderingRegistry;
+import cpw.mods.fml.common.FMLLog;
+import eu.usrv.gtsu.GTSUMod;
 import eu.usrv.gtsu.ISBRH.CoreBlockRenderer;
+import eu.usrv.gtsu.blocks.CoreBlock;
 
 
 public class ClientProxy extends CommonProxy {
 
-	public static int coreBlockRenderType;
-	public static int renderPass;
+	public int coreBlockRenderType;
+	public int renderPass;
 
-
-
-	public static void setCustomRenderers()
+	@Override
+	public void setCustomRenderers()
 	{
 		coreBlockRenderType = RenderingRegistry.getNextAvailableRenderId();
-
-		RenderingRegistry.registerBlockHandler(new CoreBlockRenderer());
+		CoreBlockRenderer tMyRenderer = new CoreBlockRenderer();
+		
+		RenderingRegistry.registerBlockHandler(coreBlockRenderType, tMyRenderer);
+		FMLLog.log(Level.INFO, "Renderer registered!");
 	}
 }

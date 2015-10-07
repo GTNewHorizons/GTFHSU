@@ -1,47 +1,88 @@
 package eu.usrv.gtsu.ISBRH;
 
-import cpw.mods.fml.client.registry.ISimpleBlockRenderingHandler;
-import eu.usrv.gtsu.proxy.ClientProxy;
+import org.apache.logging.log4j.Level;
+
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.RenderBlocks;
-import net.minecraft.init.Blocks;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
+import cpw.mods.fml.client.registry.ISimpleBlockRenderingHandler;
+import cpw.mods.fml.common.FMLLog;
+import eu.usrv.gtsu.GTSUMod;
+import eu.usrv.gtsu.blocks.CoreBlock;
+import eu.usrv.gtsu.proxy.ClientProxy;
+import eu.usrv.gtsu.proxy.CommonProxy;
 
 public class CoreBlockRenderer implements ISimpleBlockRenderingHandler {
 
 	@Override
-	public void renderInventoryBlock(Block block, int metadata, int modelID,
+	public void renderInventoryBlock(Block block, int metadata, int modelId,
 			RenderBlocks renderer) {
-		renderer.renderBlockAsItem(Blocks.stone, 1, 1f);
+		// TODO Auto-generated method stub
 
-		// you may get complications when you are rendering it in the inventory, because I think that you can't use passes in there, so here it is rendered as a stone block
 	}
 
 	@Override
 	public boolean renderWorldBlock(IBlockAccess world, int x, int y, int z,
 			Block block, int modelId, RenderBlocks renderer) {
-
-		if(ClientProxy.renderPass == 0)
-		{// Renders the stoneblock first ^ pass 0
-			renderer.renderStandardBlock(Blocks.stone, x, y, z);
+		
+		ClientProxy tProxy = (ClientProxy)GTSUMod.proxy;
+		
+		CoreBlock tBlock = (CoreBlock)block;
+		//which render pass are we doing?
+		FMLLog.log(Level.INFO, "RenderPass: %d", tProxy.renderPass);
+		if(tProxy.renderPass == 0)
+		{
+			IIcon tBackgroundLayer = tBlock.getAlpaIcon();
+			float u = tBackgroundLayer.getMinU();
+			float v = tBackgroundLayer.getMinV();
+			float U = tBackgroundLayer.getMaxU();
+			float V = tBackgroundLayer.getMaxV();
+			
+			Tessellator tes = Tessellator.instance;
+			tes.addTranslation(x, y, z);
+			
+			tes.addVertexWithUV(0, 1, 1, u, v);
+			tes.addVertexWithUV(1, 1, 1, u, V);
+			tes.addVertexWithUV(1, 1, 0, U, V);
+			tes.addVertexWithUV(0, 1, 0, U, v);
+			
+			tes.addTranslation(-x, -y, -z);
+			FMLLog.log(Level.INFO, "RenderPass 0");
 		}
-		else 
-		{// renders the block ontop of a stone block (texture wise I guess :3)
-			renderer.renderStandardBlock(Mainclass.copperStone, x, y, z);
+		else                    
+		{
+			IIcon tBackgroundLayer = tBlock.getNormalIcon();
+			float u = tBackgroundLayer.getMinU();
+			float v = tBackgroundLayer.getMinV();
+			float U = tBackgroundLayer.getMaxU();
+			float V = tBackgroundLayer.getMaxV();
+			
+			Tessellator tes = Tessellator.instance;
+			tes.addTranslation(x, y, z);
+			
+			tes.addVertexWithUV(0, 1, 1, u, v);
+			tes.addVertexWithUV(1, 1, 1, u, V);
+			tes.addVertexWithUV(1, 1, 0, U, V);
+			tes.addVertexWithUV(0, 1, 0, U, v);
+			
+			tes.addTranslation(-x, -y, -z);
+			FMLLog.log(Level.INFO, "RenderPass 1");
 		}
 
-		return true;
-	}
-
-	@Override
-	public int getRenderId() {
-
-		return ClientProxy.coreBlockRenderType;
+		return false;
 	}
 
 	@Override
 	public boolean shouldRender3DInInventory(int modelId) {
-		return true;
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public int getRenderId() {
+		return ((ClientProxy)GTSUMod.proxy).coreBlockRenderType;
 	}
 
 }
