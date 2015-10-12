@@ -1,0 +1,117 @@
+List<BlockPoswID> tBlocksToScan = new ArrayList<BlockPoswID>();
+List<BlockPoswID> newBlocksToScan = new ArrayList<BlockPoswID>();
+Map<int, BlockPoswID> scannedBlocks = new Map<int, BlockPoswID>();
+ 
+tBlocksToScan.add(%CONTROLLERBLOCK%);
+ 
+Int[][] offSets = new Int[][]
+{
+  {1, 0, 0},
+  {-1, 0, 0},
+  {0, 1, 0},
+  {0, -1, 0},
+  {0, 0, 1},
+  {0, 0, -1} 
+}
+ 
+public enum MB_BLOCKTYPE
+{
+  INVALID,
+  GLASS,
+  FRAME,
+  INPUT,
+  OUTPUT,
+  REDSTONE,
+  CONTROLLER,
+  LASERLINK,
+  CAPACITORELEMENT
+}
+ 
+private class BlockPoswID
+{
+  public int x;
+  public int y;
+  public int z;
+  public int blockID;
+  public MB_BLOCKTYPE blockType;
+  public boolean validPosition;
+  public BlockPoswID(int px, int py, int pz, int pblockID, MB_BLOCKTYPE pblockType, boolean pValidPos)
+  {
+    x=px;
+    y=py;
+    z=pz;
+    blockID=pblockID;
+    blockType = pblockType;
+    validPosition = pValidPos;
+  }
+}
+ 
+do
+{
+  for (BlockPoswID b : tBlocksToScan)
+  {
+    for (Int[] tNum : offSets)
+    {
+      Block tCurrentBlock = getBlock(b.x + tNum[0], b.y + tNum[1], b.z + tNum[2]);
+      int tBlockID = getNBTTag(tCurrentBlock).readTag("blockID");
+      MB_BLOCKTYPE tBlockType = getBlockTypeFromBlock(tCurrentBlock);
+      boolean tValidPosition = isBlockInValidPosition(tBlock);
+     
+      if (isValidMultiblockComponent(tCurrentBlock) && !scannedBlocks.containsKey(tBlockID)
+      {
+        newBlocksToScan.add(new BlockPoswID(tCurrentBlock.x, tCurrentBlock.y, tCurrentBlock.z, tBlockID, tBlockType));
+      }
+    }
+   
+    scannedBlocks.add(b);
+  }
+  tBlocksToScan.clear();
+  tBlocksToScan = newBlocksToScan;
+  newBlocksToScan = new ArrayList<BlockPoswID>();
+}
+while(tBlocksToScan.count() > 0);
+ 
+if (!checkForValidStructure(scannedBlocks))
+  SendMessage("Multiblock structure is invalid");
+else
+{
+  todo: create NBT Compatible list, add it to controller block
+  %CONTROLLERBLOCK%.setNBTTag()
+ 
+  set controllerBlockPosition in all TileEntities of structure; Input, Output, Redstone, LaserLink
+}
+ 
+-------------------------
+isBlockInValidPosition:
+  Check for blocktype and valid configs:
+  GLASS: Not checked; Allowed to all blocks. Must have at least one AIR
+  FRAME: Connection allowed to all blocks except CAPACITORELEMENT. Must have at least two AIR
+  INPUT: Not checked; Allowed to all blocks,  Must have at least one AIR
+  OUTPUT: Not checked; Allowed to all blocks,  Must have at least one AIR
+  REDSTONE, Not checked; Allowed to all blocks,  Must have at least one AIR
+  CONTROLLER, Not checked; Allowed to all blocks,  Must have at least one AIR
+  LASERLINK, Not checked; Allowed to all blocks,  Must have at least one AIR
+  CAPACITORELEMENT Connection allowed to all blocks except FRAME, AIR
+-------------------------
+checkForValidStructure:
+  Structure is valid if it has at least amount X, but max Amount Y of type Z. (-1: No limit)
+  X   Y   Y
+  1   -1  GLASS
+  1   -1  FRAME
+  1   -1  INPUT
+  1   -1  OUTPUT
+  0   1   REDSTONE
+  1   1   CONTROLLER
+  0   -1  LASERLINK
+  1   -1  CAPACITORELEMENT 
+-------------------------
+ 
+boolean validStructure = true;
+for (BlockPoswID tPos : scannedBlocks.Values)
+{
+  if (!tPos.validPosition)
+  {
+    validStructure = false;
+    break;
+  }
+}

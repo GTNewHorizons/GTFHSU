@@ -16,6 +16,8 @@ import net.minecraft.world.IBlockAccess;
 
 public class CoreBlock extends Block {
 
+	
+	
 	@SideOnly(Side.CLIENT)
 	protected IIcon icAlpha;
 	protected IIcon[] icAnimations = new IIcon[16];

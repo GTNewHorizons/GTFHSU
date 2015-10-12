@@ -124,7 +124,9 @@ public class MultiBlocks extends Block {
 		}
 
 	}
-
+	public static final int Meta_Housing = 0;
+	public static final int Meta_Glass = 1;
+	
 	private AdjacentBlocks _mAdjacent;
 	public static final String[] _mMultiBlockNames = {"CapacitorHousing", "CapacitorGlass", "CapacitorCore"};
 	public static final String[] _mSides = {"single", "singleleft", "singleright", "singlecenter", "singlebottom", "bottomleft", "bottomright", "bottomcenter", "singletop", "topleft", "topright", "topcenter", "singlecenter2", "centerleft", "centerright", "centercenter"};
@@ -228,14 +230,14 @@ public class MultiBlocks extends Block {
 
 		switch (pBlockMeta)
 		{
-		case 0:
+		case Meta_Housing:
 			if (tTexOffset == -1)
 				tTexOffset = 0;
 			
 			tRetval = icHousing[tTexOffset];
 			break;
 			
-		case 1:
+		case Meta_Glass:
 			if (tTexOffset == -1)
 				tRetval = icGlassTransparent;
 			else
@@ -253,6 +255,8 @@ public class MultiBlocks extends Block {
 		return tRetval;
 	}
 
+
+		
 	@Override
 	public void getSubBlocks(Item item, CreativeTabs tab, List stackList) 
 	{
