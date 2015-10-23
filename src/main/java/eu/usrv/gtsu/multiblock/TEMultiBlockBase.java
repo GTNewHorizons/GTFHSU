@@ -1,12 +1,14 @@
 package eu.usrv.gtsu.multiblock;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import net.minecraft.block.Block;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -19,11 +21,12 @@ import eu.usrv.gtsu.multiblock.BlockPosHelper.GTSU_BlockType;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.MB_BlockState;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.kvMinMax;
 
-public abstract class MultiBlockBase implements IMultiBlock
+public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlock
 {
 	protected List<BlockPoswID> tBlocksToScan = new ArrayList<BlockPoswID>();
 	protected List<BlockPoswID> newBlocksToScan = new ArrayList<BlockPoswID>();
 	protected Map<String, BlockPoswID> scannedBlocks = new HashMap<String, BlockPoswID>();
+	private long _mLastRandomScan;
 
 	protected MB_BlockState _mMBState;
 	protected int[][] offSets = new int[][]
@@ -95,12 +98,32 @@ public abstract class MultiBlockBase implements IMultiBlock
 
 	}
 	
+	protected boolean randomCheckStructure()
+	{
+		long tCurrentMilis = System.currentTimeMillis();
+		boolean tFlag = false;
+		int tNumBlocks = scannedBlocks.size(); // Number of all scanned and validated blocks
+		int randomAmount = (int) Math.min(20, Math.max(1, Math.floor(tNumBlocks / 4))); // check at least 1, max 20 blocks on a random scan
+		
+		if (tCurrentMilis - _mLastRandomScan > 10000)
+		{
+			// 10 seconds have passed, do a full re-scan of the MB structure
+			
+		}
+		else
+		{
+			// Do a quick scan of a few blocks and check if they are still there
+		}
+		
+		return tFlag;
+	}
+	
 	/**
 	 * Check if the structure is valid by comparing min/max values with the found blocks
 	 * @param pScannedBlocks
 	 * @return
 	 */
-	private boolean checkForValidStructure(Map<String, BlockPoswID> pScannedBlocks) {
+	protected boolean checkForValidStructure(Map<String, BlockPoswID> pScannedBlocks) {
 		boolean tResult = true;
 		BlockTypeCount bc = new BlockTypeCount<GTSU_BlockType>();
 		
