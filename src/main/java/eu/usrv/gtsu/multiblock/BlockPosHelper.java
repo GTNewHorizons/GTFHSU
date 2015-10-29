@@ -5,6 +5,7 @@ import java.util.Map;
 
 import cpw.mods.fml.common.FMLLog;
 import net.minecraft.block.Block;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -27,6 +28,7 @@ public class BlockPosHelper {
 		CONTROLLER,
 		LASERLINK,
 		CAPACITORELEMENT,
+		CAPACITORELEMENT_VISIBLE,
 		AIR
 	}
 
@@ -60,6 +62,29 @@ public class BlockPosHelper {
 			meta = 0;
 			validPosition = pValidPos;
 			blockType = pblockType;	
+		}
+		
+		public BlockPoswID(NBTTagCompound pTag)
+		{
+			x = pTag.getInteger("x");
+			y = pTag.getInteger("y");
+			z = pTag.getInteger("z");
+			blockID = pTag.getString("bID");
+			validPosition = pTag.getBoolean("valid");
+			blockType = GTSU_BlockType.values()[pTag.getInteger("type")];
+		}
+		
+		public NBTTagCompound getTagCompound()
+		{
+			NBTTagCompound tTag = new NBTTagCompound();
+			tTag.setInteger("x", x);
+			tTag.setInteger("y", y);
+			tTag.setInteger("z", z);
+			tTag.setString("bID", blockID);
+			tTag.setBoolean("valid", validPosition);
+			tTag.setInteger("type", blockType.ordinal());
+			
+			return tTag;
 		}
 	}
 	

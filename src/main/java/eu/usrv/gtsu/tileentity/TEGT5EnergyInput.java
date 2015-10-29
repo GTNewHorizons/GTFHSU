@@ -3,25 +3,30 @@ package eu.usrv.gtsu.tileentity;
 import eu.usrv.gtsu.TierHelper;
 import eu.usrv.gtsu.gregtech.GT5EnergyNetTEBase;
 import eu.usrv.gtsu.helper.BlockPosition;
+import eu.usrv.gtsu.helper.EnergySystemConverter.PowerSystem;
+import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
+import eu.usrv.gtsu.multiblock.IMultiBlock;
 import gregtech.api.interfaces.tileentity.IEnergyConnected;
 import gregtech.api.metatileentity.BaseTileEntity;
 import net.minecraft.block.Block;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.World;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
 import static eu.usrv.gtsu.TierHelper.V;
 
 // This code is based on PowerCrystals PowerConverters
-public class TEGT5EnergyInput extends GT5EnergyNetTEBase implements IEnergyConnected {
+public class TEGT5EnergyInput extends TEGT5Base implements IEnergyConnected {
 	private byte _mVoltageIdx;
 	private long _mMaxSafeVoltage;
-	private byte _mColor;   
+	private byte _mColor;
 	private double _mEuLastTick;
 	private long _mLastTickInjected;
 	private boolean _mNeedsBlockUpdate = true;
-
-	public TEGT5EnergyInput(int voltageIndex) {
-		setVoltageByIndex(voltageIndex);
+	private int _mMaxAmperage;
+	
+	public TEGT5EnergyInput() {
+		setVoltageByIndex(0);
 		setColorization((byte)-1);
 	}
 
@@ -77,6 +82,7 @@ public class TEGT5EnergyInput extends GT5EnergyNetTEBase implements IEnergyConne
 		super.readFromNBT(tag);
 		setVoltageByIndex( tag.getByte("voltageIndex") );
 		setColorization( tag.getByte("gtTileColor") );
+		_mMaxAmperage = tag.getInteger("maxAmp");
 	}
 
 	@Override
@@ -85,6 +91,7 @@ public class TEGT5EnergyInput extends GT5EnergyNetTEBase implements IEnergyConne
 
 		tag.setByte("voltageIndex", _mVoltageIdx);
 		tag.setByte("gtTileColor", _mColor);
+		tag.setInteger("maxAmp", _mMaxAmperage);
 	}
 
 	private void onOvervoltage() {
@@ -97,72 +104,44 @@ public class TEGT5EnergyInput extends GT5EnergyNetTEBase implements IEnergyConne
 	/** GregTech API Part **/
 	@Override
 	public long injectEnergyUnits(byte aSide, long aVoltage, long aAmperage) {
-		double dInternalFactor = getPowerSystem().getInternalEnergyPerInput(0);
+		if (!_mStructureValid || getMaster() == null)
+			return 0;
+		
+		TEMBControllerBlock tMaster = getMaster();
+		
 		double dEU = (double)aVoltage;
 		double dAmperage = (double)aAmperage;
 		long usedAmps;
-		boolean powered = getWorldObj().getStrongestIndirectPower(xCoord, yCoord, zCoord) > 0;
-		if(powered)
-		{
-			return 0;
-		}
+		//boolean powered = getWorldObj().getStrongestIndirectPower(xCoord, yCoord, zCoord) > 0;
 
 		if(aVoltage > _mMaxSafeVoltage)
 		{
 			onOvervoltage();
 			return 0;
 		}
-
-
-		// Note about behavior:
-		//  We're not going to waste 'half amps' in order to fill the bridge up to 100%.
-		//  Only a multiple of 1-Amp gets consumed.
-		//  If there's not enough free capacity to store (voltage*amperage)*InternalEnergyPerInput 
-		//  it will just not store it.
-		//
-
-		// Determine how much Amps we need
-		double dDemandInEU = ((double)getTotalEnergyDemand()) / dInternalFactor;
-		if( dDemandInEU < dEU ) {
-			return 0; // as we can't even store 1 Amp.
-		}
-
-		// Determine the Demand in Amperes at the given current
-		double dDemandInAmps = dDemandInEU / dEU;
-		if( dDemandInAmps < 1.0 ) { // should'nt happen but better to be paranoid :)
-			return 0;
-		}
-
-		// Limit the Demand to the provided max. Energy
-		if( dDemandInAmps > dAmperage ){
-			dDemandInAmps = dAmperage;	
-		}
-
-
+		
+		long tMaxAmps = Math.max(aAmperage, _mMaxAmperage);
+		long tTotalEnergy = aVoltage * tMaxAmps;
+		
 		// Charge/Store ->
-		double dUnusedAmps = storeEnergy( ((dDemandInAmps * dEU) * dInternalFactor), false );
-		dUnusedAmps /= dInternalFactor;
-		dUnusedAmps /= dEU; // divide with current to get the unused Amperage.
-
-		if(dUnusedAmps > 0)
-			usedAmps = (long)dDemandInAmps - (long)Math.floor(dUnusedAmps); 
-		else
-			usedAmps = (long)dDemandInAmps;
-
+		// Due to the "dont accept incomplete" flag, this will either return tTotalEnergy on success, or 0 on failure.
+		long tUnusedEnergy = tMaster.injectEnergy(PowerSystem.GT5, tTotalEnergy, false);
+		if (tUnusedEnergy == 0)
+			return 0;
 
 		// Update Stat Counters
 		if (_mLastTickInjected == worldObj.getTotalWorldTime())
-			_mEuLastTick += dEU * usedAmps;
+			_mEuLastTick += tTotalEnergy;
 		else
-			_mEuLastTick = dEU * usedAmps;
-			_mLastTickInjected = worldObj.getTotalWorldTime();
+			_mEuLastTick = tTotalEnergy;
+		_mLastTickInjected = worldObj.getTotalWorldTime();
 
-		return usedAmps;
+		return tMaxAmps;
 	}
 
 	@Override
 	public boolean inputEnergyFrom(byte aSide) {
-		return true;
+		return _mStructureValid;
 	}
 
 	@Override
@@ -179,4 +158,5 @@ public class TEGT5EnergyInput extends GT5EnergyNetTEBase implements IEnergyConne
 	public byte setColorization(byte aColor) {
 		return -1;
 	}
+
 }

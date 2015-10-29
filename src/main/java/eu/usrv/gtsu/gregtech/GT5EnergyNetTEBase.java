@@ -51,7 +51,7 @@ public abstract class GT5EnergyNetTEBase extends TileEntity implements IHasWorld
 	protected final void clearTileEntityBuffer() {
 		for (int i = 0; i < mBufferedTileEntities.length; i++) mBufferedTileEntities[i] = null;
 	}
-	
+
 	@Override public final World getWorld () {return      worldObj;}
 	@Override public final int   getXCoord() {return        xCoord;}
 	@Override public final short getYCoord() {return (short)yCoord;}
@@ -129,94 +129,94 @@ public abstract class GT5EnergyNetTEBase extends TileEntity implements IHasWorld
 		return GT_Utility.isOpaqueBlock(worldObj, aX, aY, aZ);
 	}
 
-	/*		    @Override
-		    public final boolean getAir(int aX, int aY, int aZ) {
-		    	if (ignoreUnloadedChunks && crossedChunkBorder(aX, aZ) && !worldObj.blockExists(aX, aY, aZ)) return true;
-		    	return GT_Utility.isAirBlock(worldObj, aX, aY, aZ);
-		    }
-	 */	    
-	 @Override
-	 public final TileEntity getTileEntity(int aX, int aY, int aZ) {
-		 if (ignoreUnloadedChunks && crossedChunkBorder(aX, aZ) && !worldObj.blockExists(aX, aY, aZ)) return null;
-		 return worldObj.getTileEntity(aX, aY, aZ);
-	 }
+	@Override
+	public final boolean getAir(int aX, int aY, int aZ) {
+		if (ignoreUnloadedChunks && crossedChunkBorder(aX, aZ) && !worldObj.blockExists(aX, aY, aZ)) return true;
+		return GT_Utility.isBlockAir(worldObj, aX, aY, aZ);
+	}
 
-	 @Override
-	 public final TileEntity getTileEntityAtSide(byte aSide) {
-		 if (aSide < 0 || aSide >= 6 || mBufferedTileEntities[aSide] == this) return null;
-		 int tX = getOffsetX(aSide, 1), tY = getOffsetY(aSide, 1), tZ = getOffsetZ(aSide, 1);
-		 if (crossedChunkBorder(tX, tZ)) {
-			 mBufferedTileEntities[aSide] = null;
-			 if (ignoreUnloadedChunks && !worldObj.blockExists(tX, tY, tZ)) return null;
-		 }
-		 if (mBufferedTileEntities[aSide] == null) {
-			 mBufferedTileEntities[aSide] = worldObj.getTileEntity(tX, tY, tZ);
-			 if (mBufferedTileEntities[aSide] == null) {
-				 mBufferedTileEntities[aSide] = this;
-				 return null;
-			 }
-			 return mBufferedTileEntities[aSide];
-		 }
-		 if (mBufferedTileEntities[aSide].isInvalid()) {
-			 mBufferedTileEntities[aSide] = null;
-			 return getTileEntityAtSide(aSide);
-		 }
-		 if (mBufferedTileEntities[aSide].xCoord == tX && mBufferedTileEntities[aSide].yCoord == tY && mBufferedTileEntities[aSide].zCoord == tZ) {
-			 return mBufferedTileEntities[aSide];
-		 }
-		 return null;
-	 }
+	@Override
+	public final TileEntity getTileEntity(int aX, int aY, int aZ) {
+		if (ignoreUnloadedChunks && crossedChunkBorder(aX, aZ) && !worldObj.blockExists(aX, aY, aZ)) return null;
+		return worldObj.getTileEntity(aX, aY, aZ);
+	}
 
-	 @Override
-	 public void writeToNBT(NBTTagCompound aNBT) {
-		 super.writeToNBT(aNBT);
-		 //isDead = true;
-	 }
+	@Override
+	public final TileEntity getTileEntityAtSide(byte aSide) {
+		if (aSide < 0 || aSide >= 6 || mBufferedTileEntities[aSide] == this) return null;
+		int tX = getOffsetX(aSide, 1), tY = getOffsetY(aSide, 1), tZ = getOffsetZ(aSide, 1);
+		if (crossedChunkBorder(tX, tZ)) {
+			mBufferedTileEntities[aSide] = null;
+			if (ignoreUnloadedChunks && !worldObj.blockExists(tX, tY, tZ)) return null;
+		}
+		if (mBufferedTileEntities[aSide] == null) {
+			mBufferedTileEntities[aSide] = worldObj.getTileEntity(tX, tY, tZ);
+			if (mBufferedTileEntities[aSide] == null) {
+				mBufferedTileEntities[aSide] = this;
+				return null;
+			}
+			return mBufferedTileEntities[aSide];
+		}
+		if (mBufferedTileEntities[aSide].isInvalid()) {
+			mBufferedTileEntities[aSide] = null;
+			return getTileEntityAtSide(aSide);
+		}
+		if (mBufferedTileEntities[aSide].xCoord == tX && mBufferedTileEntities[aSide].yCoord == tY && mBufferedTileEntities[aSide].zCoord == tZ) {
+			return mBufferedTileEntities[aSide];
+		}
+		return null;
+	}
 
-	 @Override
-	 public boolean isDead() {
-		 return isDead || isInvalidTileEntity();
-	 }
+	@Override
+	public void writeToNBT(NBTTagCompound aNBT) {
+		super.writeToNBT(aNBT);
+		//isDead = true;
+	}
 
-	 @Override
-	 public void validate() {
-		 clearNullMarkersFromTileEntityBuffer();
-		 super.validate();
-	 }
+	@Override
+	public boolean isDead() {
+		return isDead || isInvalidTileEntity();
+	}
 
-	 @Override
-	 public void invalidate() {
-		 clearNullMarkersFromTileEntityBuffer();
-		 super.invalidate();
-	 }
+	@Override
+	public void validate() {
+		clearNullMarkersFromTileEntityBuffer();
+		super.validate();
+	}
 
-	 @Override
-	 public void onChunkUnload() {
-		 clearNullMarkersFromTileEntityBuffer();
-		 super.onChunkUnload();
-		 isDead = true;
-	 }
+	@Override
+	public void invalidate() {
+		clearNullMarkersFromTileEntityBuffer();
+		super.invalidate();
+	}
 
-	 @Override
-	 public void updateEntity() {
-		 // Well if the TileEntity gets ticked it is alive.
-		 isDead = false;
-	 }
+	@Override
+	public void onChunkUnload() {
+		clearNullMarkersFromTileEntityBuffer();
+		super.onChunkUnload();
+		isDead = true;
+	}
 
-	 public final void onAdjacentBlockChange(int aX, int aY, int aZ) {
-		 clearNullMarkersFromTileEntityBuffer();
-	 }
+	@Override
+	public void updateEntity() {
+		// Well if the TileEntity gets ticked it is alive.
+		isDead = false;
+	}
 
-	 @Override
-	 public final void sendBlockEvent(byte aID, byte aValue) {
-		 NW.sendPacketToAllPlayersInRange(worldObj, new GT_Packet_Block_Event(xCoord, (short)yCoord, zCoord, aID, aValue), xCoord, zCoord);
-	 }
+	public final void onAdjacentBlockChange(int aX, int aY, int aZ) {
+		clearNullMarkersFromTileEntityBuffer();
+	}
 
-	 private boolean crossedChunkBorder(int aX, int aZ) {
-		 return aX >> 4 != xCoord >> 4 || aZ >> 4 != zCoord >> 4;
-	 }
+	@Override
+	public final void sendBlockEvent(byte aID, byte aValue) {
+		NW.sendPacketToAllPlayersInRange(worldObj, new GT_Packet_Block_Event(xCoord, (short)yCoord, zCoord, aID, aValue), xCoord, zCoord);
+	}
 
-	 @Override public void setLightValue(byte aLightValue) {};
-	 @Override public boolean isInvalidTileEntity() { return true; }
-	 @Override public long getTimer() { return 0; }
+	private boolean crossedChunkBorder(int aX, int aZ) {
+		return aX >> 4 != xCoord >> 4 || aZ >> 4 != zCoord >> 4;
+	}
+
+	@Override public void setLightValue(byte aLightValue) {};
+	@Override public boolean isInvalidTileEntity() { return true; }
+	@Override public long getTimer() { return 0; }
 }

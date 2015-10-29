@@ -3,15 +3,19 @@ package eu.usrv.gtsu.tileentity;
 import static eu.usrv.gtsu.TierHelper.V;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.logging.log4j.Level;
 
 import cpw.mods.fml.common.FMLLog;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.World;
 import eu.usrv.gtsu.TierHelper;
 import eu.usrv.gtsu.helper.EnergySystemConverter.PowerSystem;
 import eu.usrv.gtsu.helper.Enums.EN_EnergyType;
+import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
+import eu.usrv.gtsu.multiblock.BlockPosHelper.GTSU_BlockType;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.MB_BlockState;
 import eu.usrv.gtsu.multiblock.IMultiBlock;
 import eu.usrv.gtsu.multiblock.TEMultiBlockBase;
@@ -21,7 +25,10 @@ public class TEMBControllerBlock extends TEMultiBlockBase
 {
 	// Our stored energy. This is *not* EU, nor RF, nor anything else. It's a new PowerSystem, with blackjack, and hookers!
 	private long _mEnergy;
-	private HashMap<MB_BlockState, IMultiBlock> _mMultiBlockCompound;
+	private long _mMaxEnergy;
+	private final static double _mEnergyPerElement = 10000000.0D;
+	//private HashMap<GTSU_BlockType, IMultiBlock> _mMultiBlockCompound;
+	
 	public static final String NBTVAL_ENERGY = "mEnergy";
 	
 	/** 
@@ -59,10 +66,10 @@ public class TEMBControllerBlock extends TEMultiBlockBase
 		try
 		{
 			// We can't check for _mEnergy + pEnergyType.getEnergyUnits(pUnits) here,
-			// because this would result in an overflow of the operation itself.
+			// because this could result in an overflow of the operation itself.
 			// So instead, we subtract our stored energy from the maximum possible amount,
 			// and compare that to the amount to be injected. So we never leave our range of the Long
-			// Datatype
+			// Datatype.
 			
 			if (Long.MAX_VALUE - _mEnergy >= pEnergyType.getEnergyUnits(pUnits))
 				return true;
@@ -165,10 +172,61 @@ public class TEMBControllerBlock extends TEMultiBlockBase
 		FMLLog.log(Level.INFO, "Data written to NBT: E: %d", _mEnergy);
 	}
 
-	@Override
-	public MB_BlockState getMultiblockBlockType()
+	/**
+	 * (Re-)Calculate maximum storage size based on the number of capacitor elements
+	 * The possible stored amount of Energy grows with each 18. Block placed 
+	 */
+	private void calculateStorageSize()
 	{
-		return MB_BlockState.MASTER;
+		double tCapacitorElements = 0.0D;
+		for (Map.Entry<String, BlockPoswID> tElmt : scannedBlocks.entrySet())
+		{
+			if (tElmt.getValue().blockType == GTSU_BlockType.CAPACITORELEMENT || tElmt.getValue().blockType == GTSU_BlockType.CAPACITORELEMENT_VISIBLE)
+				tCapacitorElements++;
+		}
+		
+		double tMultiplier = Math.pow(Math.ceil(tCapacitorElements / 18.0D), 2.0D);
+		if (tCapacitorElements > 66852)
+			_mMaxEnergy = Long.MAX_VALUE;
+		else
+			_mMaxEnergy = new Double(_mEnergyPerElement * tCapacitorElements * tMultiplier).longValue();
+		
+		// Cut down energy to new storage size, if we have some energy left
+		if (_mEnergy > _mMaxEnergy)
+			_mEnergy = _mMaxEnergy;
+		
+		FMLLog.log(Level.INFO, "Found Capacitors: %f Total Possible Storage: %f", tCapacitorElements, _mMaxEnergy);
 	}
 	
+	/**
+	 * Calculate the percentage of power stored in the Multiblock
+	 * @return
+	 */
+	private int calcFillLevel()
+	{
+		double tPerc = 100.0D / (double)_mMaxEnergy * (double)_mEnergy;
+		return (int)tPerc;
+	}
+	
+	/**
+	 * Update the MetaID of the capacitor blocks, to reflect the current fill-level of
+	 * the MultiBlock. While scanning the MB Structure, we already checked the visibility of the capacitor
+	 * elements, so we don't have to do this here, which saves a lot of calculation time (And probably bandwith, for
+	 * large Multiblocks)
+	 */
+	private void updateCapacitorBlocks(World pWorld)
+	{
+		int tMeta = new Double(15.0D / 100.0D * (double)calcFillLevel()).intValue();
+		for (Map.Entry<String, BlockPoswID> tElmt : scannedBlocks.entrySet())
+		{
+			BlockPoswID tBlock = tElmt.getValue();
+			if (tBlock.blockType == GTSU_BlockType.CAPACITORELEMENT_VISIBLE)
+				pWorld.setBlockMetadataWithNotify(tBlock.x, tBlock.y, tBlock.z, tMeta, 2);
+		}
+	}
+
+	@Override
+	public void updateMBStruct(boolean pStructValid, BlockPoswID pControllerBlock) {
+		// Nothing to do. We are a master block
+	}
 }

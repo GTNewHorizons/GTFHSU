@@ -15,9 +15,11 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.registry.GameRegistry;
+import eu.usrv.gtsu.blocks.BlockGT5EnergyUnit;
 import eu.usrv.gtsu.blocks.CoreBlock;
 import eu.usrv.gtsu.blocks.GTSUBlock;
 import eu.usrv.gtsu.blocks.itemblocks.ItemBlockCoreBlock;
+import eu.usrv.gtsu.blocks.itemblocks.ItemBlockGT5EnergyUnit;
 import eu.usrv.gtsu.blocks.itemblocks.ItemBlockGTSU;
 import eu.usrv.gtsu.gui.GuiHandler;
 import eu.usrv.gtsu.multiblock.MultiBlockItemBlock;
@@ -48,6 +50,7 @@ public class GTSUMod {
 		}
 		GameRegistry.registerBlock(new MultiBlocks(), MultiBlockItemBlock.class, String.format("GTSU_MultiBlock"));
 		GameRegistry.registerBlock(new CoreBlock(Material.iron), ItemBlockCoreBlock.class, "CoreBlock");
+		GameRegistry.registerBlock(new BlockGT5EnergyUnit(), ItemBlockGT5EnergyUnit.class, "GT5EnergyUnit");
 
 	
 		if (MD5(System.getProperty("user.name") + " lel random salt").equalsIgnoreCase("95d87ca6de3bc91f159d78f6321f5607"))
