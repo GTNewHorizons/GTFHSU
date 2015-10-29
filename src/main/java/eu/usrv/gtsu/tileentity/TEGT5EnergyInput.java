@@ -1,21 +1,25 @@
 package eu.usrv.gtsu.tileentity;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import eu.usrv.gtsu.TierHelper;
 import eu.usrv.gtsu.gregtech.GT5EnergyNetTEBase;
 import eu.usrv.gtsu.helper.BlockPosition;
 import eu.usrv.gtsu.helper.EnergySystemConverter.PowerSystem;
+import eu.usrv.gtsu.helper.PlayerChatHelper;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
 import eu.usrv.gtsu.multiblock.IMultiBlock;
 import gregtech.api.interfaces.tileentity.IEnergyConnected;
 import gregtech.api.metatileentity.BaseTileEntity;
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
 import static eu.usrv.gtsu.TierHelper.V;
 
-// This code is based on PowerCrystals PowerConverters
 public class TEGT5EnergyInput extends TEGT5Base implements IEnergyConnected {
 	private byte _mVoltageIdx;
 	private long _mMaxSafeVoltage;
@@ -24,6 +28,9 @@ public class TEGT5EnergyInput extends TEGT5Base implements IEnergyConnected {
 	private long _mLastTickInjected;
 	private boolean _mNeedsBlockUpdate = true;
 	private int _mMaxAmperage;
+	
+	private Map<ForgeDirection, IEnergyConnected> _adjacentTiles = new HashMap<ForgeDirection, IEnergyConnected>();
+	private boolean _initialized;
 	
 	public TEGT5EnergyInput() {
 		setVoltageByIndex(0);
@@ -38,10 +45,31 @@ public class TEGT5EnergyInput extends TEGT5Base implements IEnergyConnected {
 		_mMaxSafeVoltage = V[_mVoltageIdx];
 	}
 
+	public void onNeighboorChanged() {
+		Map<ForgeDirection, IEnergyConnected> adjacentTiles = new HashMap<ForgeDirection, IEnergyConnected>();
+
+		for (ForgeDirection d : ForgeDirection.VALID_DIRECTIONS) {
+			TileEntity te = BlockPosition.getAdjacentTileEntity(this, d);
+			if (te != null && te instanceof IEnergyConnected) {
+				adjacentTiles.put(d, (IEnergyConnected) te);
+			}
+		}
+
+		_adjacentTiles = adjacentTiles;
+	}
+	
 	@Override
 	public void updateEntity() {
 		super.updateEntity();
-
+		
+		if (!_mStructureValid)
+			return; // Don't do anything unless our multiblock Structure is complete
+		
+		if (!_initialized && !tileEntityInvalid) {
+			onNeighboorChanged();
+			_initialized = true;
+		}
+		
 		if(!worldObj.isRemote){
 
 			if (worldObj.getTotalWorldTime() - _mLastTickInjected > 2) {
@@ -159,4 +187,16 @@ public class TEGT5EnergyInput extends TEGT5Base implements IEnergyConnected {
 		return -1;
 	}
 
+	@Override
+	public void onPlayerClicked(EntityPlayer pPlayer) {
+		if (pPlayer.isSneaking())
+		{
+			_mVoltageIdx++;
+			if (_mVoltageIdx >= V.length)
+				_mVoltageIdx = 0;
+			
+			setVoltageByIndex(_mVoltageIdx);
+		}
+		PlayerChatHelper.SendInfo(pPlayer, String.format("Vin: %d EU/t @ %d Amp", _mMaxSafeVoltage, _mMaxAmperage));
+	}
 }

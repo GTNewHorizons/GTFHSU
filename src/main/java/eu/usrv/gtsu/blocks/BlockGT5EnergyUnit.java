@@ -7,6 +7,7 @@ import ic2.core.util.StackUtil;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import eu.usrv.gtsu.GTSUMod;
+import eu.usrv.gtsu.multiblock.IMultiBlock;
 import eu.usrv.gtsu.proxy.ClientProxy;
 import eu.usrv.gtsu.tileentity.TEGT5EnergyInput;
 import eu.usrv.gtsu.tileentity.TEGT5EnergyOutput;
@@ -18,6 +19,7 @@ import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.EnumCreatureType;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -32,6 +34,9 @@ public class BlockGT5EnergyUnit extends Block {
 	@SideOnly(Side.CLIENT)
 	protected IIcon icAcceptor;
 
+	public static final int ID_Acceptor = 0;
+	public static final int ID_Producer = 1;
+	
 	public BlockGT5EnergyUnit() {
 		super(Material.iron);
 
@@ -59,12 +64,12 @@ public class BlockGT5EnergyUnit extends Block {
 	@Override
 	public IIcon getIcon(int pSide, int pMeta)
 	{
-		if (pMeta == 0)
-			return icProducer;
-		else if (pMeta == 1)
+		if (pMeta == ID_Acceptor)
 			return icAcceptor;
+		else if (pMeta == ID_Producer)
+			return icProducer;
 
-		return icProducer;
+		return null;
 	}
 
 	@Override
@@ -100,12 +105,22 @@ public class BlockGT5EnergyUnit extends Block {
 	}
     
 	@Override
-	public final TileEntity createTileEntity(World world, int metadata) {
-		if (metadata == 0)
+	public final TileEntity createTileEntity(World pWorld, int pMeta) {
+		if (pMeta == ID_Acceptor)
 			return new TEGT5EnergyInput();
-		else if (metadata == 1)
-			return new TEGT5EnergyOutput();
+		else if (pMeta == ID_Producer)
+			return new TEGT5EnergyOutput(); 
 		else
 			return null;
+	}
+	
+	@Override
+	public boolean onBlockActivated(World pWorld, int x, int y, int z, EntityPlayer pPlayer, int par6, float par7, float par8, float par9) {
+		int tCurrMeta = pWorld.getBlockMetadata(x, y, z);
+		TileEntity te = pWorld.getTileEntity(x, y, z);
+		if (te != null && te instanceof IMultiBlock)
+			((IMultiBlock)te).onPlayerClicked(pPlayer);
+		
+		return true;
 	}
 }

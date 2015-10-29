@@ -46,7 +46,7 @@ public class CoreBlock extends Block {
 		if (tCurrMeta >= 15)
 			tCurrMeta = 0;
 		world.setBlockMetadataWithNotify(x, y, z, tCurrMeta, 3);
-	};
+	}
 	
 	@SideOnly(Side.CLIENT)
 	@Override

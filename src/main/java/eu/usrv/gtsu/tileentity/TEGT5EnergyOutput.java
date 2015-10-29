@@ -6,15 +6,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.ForgeDirection;
 import eu.usrv.gtsu.helper.BlockPosition;
+import eu.usrv.gtsu.helper.PlayerChatHelper;
 import eu.usrv.gtsu.helper.EnergySystemConverter.PowerSystem;
 import gregtech.api.interfaces.tileentity.IEnergyConnected;
 import gregtech.api.metatileentity.BaseTileEntity;
 
-// This code is based on PowerCrystals PowerConverters
 public class TEGT5EnergyOutput extends TEGT5Base implements IEnergyConnected {
 	private byte _mVoltageIdx;
 	private long _mVoltageOut;
@@ -57,6 +58,9 @@ public class TEGT5EnergyOutput extends TEGT5Base implements IEnergyConnected {
 	public void updateEntity() {
 		super.updateEntity();
 
+		if (!_mStructureValid)
+			return; // Don't do anything unless our multiblock Structure is complete
+		
 		if (!_initialized && !tileEntityInvalid) {
 			onNeighboorChanged();
 			_initialized = true;
@@ -117,6 +121,9 @@ public class TEGT5EnergyOutput extends TEGT5Base implements IEnergyConnected {
 		//boolean powered = getWorldObj().getStrongestIndirectPower(xCoord, yCoord, zCoord) > 0;
 		long usedEU = 0;
 		
+		if (!_mStructureValid)
+			return; // Don't do anything unless our multiblock Structure is complete
+		
 		TEMBControllerBlock tMaster = getMaster();
 		if (tMaster == null)
 			return;
@@ -166,5 +173,18 @@ public class TEGT5EnergyOutput extends TEGT5Base implements IEnergyConnected {
 	@Override
 	public byte setColorization(byte aColor) {
 		return -1;
+	}
+	
+	@Override
+	public void onPlayerClicked(EntityPlayer pPlayer) {
+		if (pPlayer.isSneaking())
+		{
+			_mVoltageIdx++;
+			if (_mVoltageIdx >= V.length)
+				_mVoltageIdx = 0;
+			
+			setVoltageByIndex(_mVoltageIdx);
+		}
+		PlayerChatHelper.SendInfo(pPlayer, String.format("Vout: %d EU/t @ %d Amp", _mVoltageOut, _mAmperageOut));
 	}
 }

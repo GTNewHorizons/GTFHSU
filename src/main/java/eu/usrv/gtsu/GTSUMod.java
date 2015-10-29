@@ -25,6 +25,8 @@ import eu.usrv.gtsu.gui.GuiHandler;
 import eu.usrv.gtsu.multiblock.MultiBlockItemBlock;
 import eu.usrv.gtsu.multiblock.MultiBlocks;
 import eu.usrv.gtsu.proxy.CommonProxy;
+import eu.usrv.gtsu.tileentity.TEGT5EnergyInput;
+import eu.usrv.gtsu.tileentity.TEGT5EnergyOutput;
 import eu.usrv.gtsu.tileentity.TileEntityGTSU;
 
 @Mod(modid = GTSUMod.GTSU_MODID, name = "GTSU Mod", version = "GRADLETOKEN_VERSION", dependencies = "required-after:IC2")
@@ -43,6 +45,8 @@ public class GTSUMod {
 	public void preInit(FMLPreInitializationEvent event){
 
 		GameRegistry.registerTileEntity(TileEntityGTSU.class, "GTSU_TE");
+		GameRegistry.registerTileEntity(TEGT5EnergyInput.class, "GTSU_MB_GT5PRODUCER");
+		GameRegistry.registerTileEntity(TEGT5EnergyOutput.class, "GTSU_MB_GT5ACCEPTOR");
 
 		for (int i = 0; i < TierHelper.V.length; i++)
 		{

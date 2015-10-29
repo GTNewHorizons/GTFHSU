@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.logging.log4j.Level;
 
 import cpw.mods.fml.common.FMLLog;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
@@ -228,5 +229,10 @@ public class TEMBControllerBlock extends TEMultiBlockBase
 	@Override
 	public void updateMBStruct(boolean pStructValid, BlockPoswID pControllerBlock) {
 		// Nothing to do. We are a master block
+	}
+
+	@Override
+	public void onPlayerClicked(EntityPlayer pPlayer) {
+		
 	}
 }
