@@ -54,7 +54,7 @@ public class GTSUMod {
 		}
 		GameRegistry.registerBlock(new MultiBlocks(), MultiBlockItemBlock.class, String.format("GTSU_MultiBlock"));
 		GameRegistry.registerBlock(new CoreBlock(Material.iron), ItemBlockCoreBlock.class, "CoreBlock");
-		GameRegistry.registerBlock(new BlockGT5EnergyUnit(), ItemBlockGT5EnergyUnit.class, "GT5EnergyUnit");
+		BlockGT5EnergyUnit tEnUnit = new BlockGT5EnergyUnit();
 
 	
 		if (MD5(System.getProperty("user.name") + " lel random salt").equalsIgnoreCase("95d87ca6de3bc91f159d78f6321f5607"))

@@ -9,7 +9,7 @@ import eu.usrv.gtsu.helper.BlockPosition;
 import eu.usrv.gtsu.helper.EnergySystemConverter.PowerSystem;
 import eu.usrv.gtsu.helper.PlayerChatHelper;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
-import eu.usrv.gtsu.multiblock.IMultiBlock;
+import eu.usrv.gtsu.multiblock.IMultiBlockComponent;
 import gregtech.api.interfaces.tileentity.IEnergyConnected;
 import gregtech.api.metatileentity.BaseTileEntity;
 import net.minecraft.block.Block;
@@ -188,15 +188,28 @@ public class TEGT5EnergyInput extends TEGT5Base implements IEnergyConnected {
 	}
 
 	@Override
-	public void onPlayerClicked(EntityPlayer pPlayer) {
+	public boolean doScrewdriver(EntityPlayer pPlayer) 
+	{
 		if (pPlayer.isSneaking())
-		{
+			_mVoltageIdx--;
+		else
 			_mVoltageIdx++;
-			if (_mVoltageIdx >= V.length)
-				_mVoltageIdx = 0;
-			
-			setVoltageByIndex(_mVoltageIdx);
-		}
+		
+		if (_mVoltageIdx >= V.length)
+			_mVoltageIdx = 0;
+		else if (_mVoltageIdx < 0)
+			_mVoltageIdx = (byte) (V.length - 1);
+
+		
+		setVoltageByIndex(_mVoltageIdx);
+
 		PlayerChatHelper.SendInfo(pPlayer, String.format("Vin: %d EU/t @ %d Amp", _mMaxSafeVoltage, _mMaxAmperage));
+		
+		return true;
+	}
+	
+	@Override
+	public boolean doWrench(EntityPlayer pPlayer) {
+		return false;
 	}
 }

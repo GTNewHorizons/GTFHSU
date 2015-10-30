@@ -26,12 +26,12 @@ import eu.usrv.gtsu.multiblock.BlockPosHelper.GTSU_BlockType;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.MB_BlockState;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.kvMinMax;
 
-public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlock
+public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlockComponent
 {
 	protected List<BlockPoswID> tBlocksToScan = new ArrayList<BlockPoswID>();
 	protected List<BlockPoswID> newBlocksToScan = new ArrayList<BlockPoswID>();
 	protected Map<String, BlockPoswID> scannedBlocks = new HashMap<String, BlockPoswID>();
-	private boolean _mMultiblockIsValid;
+	protected boolean _mMultiblockIsValid;
 	private long _mLastRandomScan;
 	private Random _mRnd;
 	
@@ -161,8 +161,8 @@ public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlock
 				case OUTPUT:
 				case REDSTONE:
 					TileEntity tTE = pWorld.getTileEntity(tBlock.x, tBlock.y, tBlock.z);
-					if (tTE != null && tTE instanceof IMultiBlock)
-						((IMultiBlock)tTE).updateMBStruct(true, pMasterBlock);
+					if (tTE != null && tTE instanceof IMultiBlockComponent)
+						((IMultiBlockComponent)tTE).updateMBStruct(true, pMasterBlock);
 					break;
 			}
 		}

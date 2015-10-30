@@ -13,12 +13,13 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import eu.usrv.gtsu.TierHelper;
+import eu.usrv.gtsu.helper.PlayerChatHelper;
 import eu.usrv.gtsu.helper.EnergySystemConverter.PowerSystem;
 import eu.usrv.gtsu.helper.Enums.EN_EnergyType;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.GTSU_BlockType;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.MB_BlockState;
-import eu.usrv.gtsu.multiblock.IMultiBlock;
+import eu.usrv.gtsu.multiblock.IMultiBlockComponent;
 import eu.usrv.gtsu.multiblock.TEMultiBlockBase;
 
 // This is our main controller block
@@ -230,9 +231,18 @@ public class TEMBControllerBlock extends TEMultiBlockBase
 	public void updateMBStruct(boolean pStructValid, BlockPoswID pControllerBlock) {
 		// Nothing to do. We are a master block
 	}
-
+	
 	@Override
-	public void onPlayerClicked(EntityPlayer pPlayer) {
-		
+	public boolean isUseableByPlayer(EntityPlayer pPlayer) {
+		return true;
+	}
+	
+	@Override
+	public boolean onRightclick(EntityPlayer pPlayer, byte pSide, float par1, float par2, float par3) {
+		// TODO: Open GUI
+		PlayerChatHelper.SendInfo(pPlayer, String.format("Structure formed: %b", _mMultiblockIsValid));
+		PlayerChatHelper.SendInfo(pPlayer, String.format("Energy Stored   : %d", _mEnergy));
+		PlayerChatHelper.SendInfo(pPlayer, String.format("Max Energy      : %d", _mMaxEnergy));
+		return true;
 	}
 }

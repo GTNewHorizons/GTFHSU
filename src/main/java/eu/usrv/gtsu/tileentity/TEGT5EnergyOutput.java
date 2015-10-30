@@ -176,15 +176,27 @@ public class TEGT5EnergyOutput extends TEGT5Base implements IEnergyConnected {
 	}
 	
 	@Override
-	public void onPlayerClicked(EntityPlayer pPlayer) {
+	public boolean doScrewdriver(EntityPlayer pPlayer) 
+	{
 		if (pPlayer.isSneaking())
-		{
+			_mVoltageIdx--;
+		else
 			_mVoltageIdx++;
-			if (_mVoltageIdx >= V.length)
-				_mVoltageIdx = 0;
-			
-			setVoltageByIndex(_mVoltageIdx);
-		}
+		
+		if (_mVoltageIdx >= V.length)
+			_mVoltageIdx = 0;
+		else if (_mVoltageIdx < 0)
+			_mVoltageIdx = (byte) (V.length - 1);
+		
+		
+		setVoltageByIndex(_mVoltageIdx);
 		PlayerChatHelper.SendInfo(pPlayer, String.format("Vout: %d EU/t @ %d Amp", _mVoltageOut, _mAmperageOut));
+		
+		return true;
+	}
+	
+	@Override
+	public boolean doWrench(EntityPlayer pPlayer) {
+		return false;
 	}
 }

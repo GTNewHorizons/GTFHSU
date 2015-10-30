@@ -7,7 +7,8 @@ import ic2.core.util.StackUtil;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import eu.usrv.gtsu.GTSUMod;
-import eu.usrv.gtsu.multiblock.IMultiBlock;
+import eu.usrv.gtsu.blocks.itemblocks.ItemBlockGT5EnergyUnit;
+import eu.usrv.gtsu.multiblock.IMultiBlockComponent;
 import eu.usrv.gtsu.proxy.ClientProxy;
 import eu.usrv.gtsu.tileentity.TEGT5EnergyInput;
 import eu.usrv.gtsu.tileentity.TEGT5EnergyOutput;
@@ -27,8 +28,9 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.oredict.OreDictionary;
 
-public class BlockGT5EnergyUnit extends Block {
+public class BlockGT5EnergyUnit extends GTSU_GenericBlock {
 	@SideOnly(Side.CLIENT)
 	protected IIcon icProducer;
 	@SideOnly(Side.CLIENT)
@@ -38,9 +40,8 @@ public class BlockGT5EnergyUnit extends Block {
 	public static final int ID_Producer = 1;
 	
 	public BlockGT5EnergyUnit() {
-		super(Material.iron);
+		super(ItemBlockGT5EnergyUnit.class, "GT5EnergyUnit", Material.iron);
 
-		setBlockName("GT5EnergyUnit");
 		this.setCreativeTab(IC2.tabIC2);
 		this.setHardness(3.0F);
 		this.setStepSound(soundTypeMetal);
@@ -113,14 +114,5 @@ public class BlockGT5EnergyUnit extends Block {
 		else
 			return null;
 	}
-	
-	@Override
-	public boolean onBlockActivated(World pWorld, int x, int y, int z, EntityPlayer pPlayer, int par6, float par7, float par8, float par9) {
-		int tCurrMeta = pWorld.getBlockMetadata(x, y, z);
-		TileEntity te = pWorld.getTileEntity(x, y, z);
-		if (te != null && te instanceof IMultiBlock)
-			((IMultiBlock)te).onPlayerClicked(pPlayer);
-		
-		return true;
-	}
+
 }
