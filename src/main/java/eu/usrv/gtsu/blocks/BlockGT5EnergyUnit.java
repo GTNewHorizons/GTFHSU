@@ -74,11 +74,6 @@ public class BlockGT5EnergyUnit extends GTSU_GenericBlock {
 	}
 
 	@Override
-	public boolean isOpaqueCube() {
-		return true;
-	}
-
-	@Override
 	public void getSubBlocks(Item item, CreativeTabs tab, List stackList) 
 	{
 		stackList.add(new ItemStack(this, 1, 0));
@@ -87,21 +82,6 @@ public class BlockGT5EnergyUnit extends GTSU_GenericBlock {
 	
 	@Override
 	public final boolean hasTileEntity(int metadata){
-	    return true;
-	}
-
-	@Override
-	public boolean canCreatureSpawn(EnumCreatureType type, IBlockAccess world, int x, int y, int z){
-	    return false;
-	}
-	
-	@Override
-	public boolean isNormalCube(IBlockAccess world, int i, int j, int k){
-	    return false;
-	}
-
-	@Override
-	public boolean isBlockSolid(IBlockAccess world, int x, int y, int z, int side){
 	    return true;
 	}
     

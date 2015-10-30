@@ -26,15 +26,50 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 public class MultiBlocks extends Block {
 
+	private static class UIDMeta
+	{
+		public UniqueIdentifier UID;
+		public int Meta;
+		public UIDMeta(UniqueIdentifier pUID, int pMeta)
+		{
+			UID = pUID;
+			Meta = pMeta;
+		}
+		
+		@Override
+		public boolean equals(Object other) {
+		    if (other == null) return false;
+		    if (other == this) return true;
+		    if (!(other instanceof UIDMeta))return false;
+		    UIDMeta otherObj = (UIDMeta)other;
+		    
+		    boolean tFlag = true;
+		    String otherName = ((UIDMeta)other).UID.toString();
+		    String thisName = UID.toString();
+		    if (otherName != null && thisName != null)
+		    {
+			    if (!otherName.equals(thisName))
+			    	tFlag = false;
+			    
+			    if (!(otherObj.Meta == this.Meta))
+			    	tFlag = false;
+		    }
+		    else
+		    	tFlag = false;
+		    
+		    return tFlag;
+		}
+	}
+	
 	private static class AdjacentBlocks
 	{
-		UniqueIdentifier Me;
-		UniqueIdentifier AdjacentTop;
-		UniqueIdentifier AdjacentBottom;
-		UniqueIdentifier AdjacentNorth;
-		UniqueIdentifier AdjacentSouth;
-		UniqueIdentifier AdjacentEast;
-		UniqueIdentifier AdjacentWest;
+		UIDMeta Me;
+		UIDMeta AdjacentTop;
+		UIDMeta AdjacentBottom;
+		UIDMeta AdjacentNorth;
+		UIDMeta AdjacentSouth;
+		UIDMeta AdjacentEast;
+		UIDMeta AdjacentWest;
 
 		public AdjacentBlocks()
 		{
@@ -88,7 +123,7 @@ public class MultiBlocks extends Block {
 			return tResult;
 		}
 
-		public void setAdjacent(ForgeDirection pDirection, Block pBlock)
+		public void setAdjacent(ForgeDirection pDirection, Block pBlock, int pMeta)
 		{
 			if (pBlock != null)
 			{
@@ -98,25 +133,25 @@ public class MultiBlocks extends Block {
 					switch (pDirection)
 					{
 					case DOWN:
-						AdjacentBottom = tUID;
+						AdjacentBottom = new UIDMeta(tUID, pMeta);
 						break;
 					case EAST:
-						AdjacentEast = tUID;
+						AdjacentEast = new UIDMeta(tUID, pMeta);;
 						break;
 					case NORTH:
-						AdjacentNorth = tUID;
+						AdjacentNorth = new UIDMeta(tUID, pMeta);;
 						break;
 					case SOUTH:
-						AdjacentSouth = tUID;
+						AdjacentSouth = new UIDMeta(tUID, pMeta);;
 						break;
 					case UNKNOWN:
 						FMLLog.log(Level.WARN, "Something tried to set an adjacent block with unknown direction");
 						break;
 					case UP:
-						AdjacentTop = tUID;
+						AdjacentTop = new UIDMeta(tUID, pMeta);;
 						break;
 					case WEST:
-						AdjacentWest = tUID;
+						AdjacentWest = new UIDMeta(tUID, pMeta);;
 						break;
 					}
 				}
@@ -128,7 +163,7 @@ public class MultiBlocks extends Block {
 	public static final int Meta_Glass = 1;
 	
 	private AdjacentBlocks _mAdjacent;
-	public static final String[] _mMultiBlockNames = {"CapacitorHousing", "CapacitorGlass", "CapacitorCore"};
+	public static final String[] _mMultiBlockNames = {"CapacitorHousing", "CapacitorGlass"};
 	public static final String[] _mSides = {"single", "singleleft", "singleright", "singlecenter", "singlebottom", "bottomleft", "bottomright", "bottomcenter", "singletop", "topleft", "topright", "topcenter", "singlecenter2", "centerleft", "centerright", "centercenter"};
 	
 	public MultiBlocks() {
@@ -177,28 +212,41 @@ public class MultiBlocks extends Block {
 	}
 
 	@Override
+	public IIcon getIcon(int pSide, int pMeta) {
+		switch (pMeta)
+		{
+			case Meta_Glass:
+				return icGlass[0]; 
+			
+			case Meta_Housing:
+				return icHousing[0];
+		}
+		
+		return icHousing[0];
+	}
+	
+	@Override
 	@SideOnly(Side.CLIENT)
 	public IIcon getIcon(IBlockAccess pBlockAccess, int pX, int pY, int pZ, int pSide)
 	{
 		IIcon tRetval = null;
+		int pBlockMeta = pBlockAccess.getBlockMetadata(pX, pY, pZ);
+		int tTexOffset = 0;
 		
 		if (_mAdjacent.Me == null)
 		{
 			Block tMe = pBlockAccess.getBlock(pX,pY, pZ);
-			_mAdjacent.Me = GameRegistry.findUniqueIdentifierFor(tMe);
+			_mAdjacent.Me = new UIDMeta(GameRegistry.findUniqueIdentifierFor(tMe), pBlockMeta); 
 		}
 
 		// SOUTH   +Z-   NORTH
 		// EAST    +X-   WEST
-		_mAdjacent.setAdjacent(ForgeDirection.DOWN, pBlockAccess.getBlock(pX, pY-1, pZ));
-		_mAdjacent.setAdjacent(ForgeDirection.UP, pBlockAccess.getBlock(pX, pY+1, pZ));
-		_mAdjacent.setAdjacent(ForgeDirection.EAST, pBlockAccess.getBlock(pX+1, pY, pZ));
-		_mAdjacent.setAdjacent(ForgeDirection.WEST, pBlockAccess.getBlock(pX-1, pY, pZ));
-		_mAdjacent.setAdjacent(ForgeDirection.SOUTH, pBlockAccess.getBlock(pX, pY, pZ+1));
-		_mAdjacent.setAdjacent(ForgeDirection.NORTH, pBlockAccess.getBlock(pX, pY, pZ-1));
-		
-		int pBlockMeta = pBlockAccess.getBlockMetadata(pX, pY, pZ);
-		int tTexOffset = 0;
+		_mAdjacent.setAdjacent(ForgeDirection.DOWN, pBlockAccess.getBlock(pX, pY-1, pZ), pBlockAccess.getBlockMetadata(pX, pY-1, pZ));
+		_mAdjacent.setAdjacent(ForgeDirection.UP, pBlockAccess.getBlock(pX, pY+1, pZ), pBlockAccess.getBlockMetadata(pX, pY+1, pZ));
+		_mAdjacent.setAdjacent(ForgeDirection.EAST, pBlockAccess.getBlock(pX+1, pY, pZ), pBlockAccess.getBlockMetadata(pX+1, pY, pZ));
+		_mAdjacent.setAdjacent(ForgeDirection.WEST, pBlockAccess.getBlock(pX-1, pY, pZ), pBlockAccess.getBlockMetadata(pX-1, pY, pZ));
+		_mAdjacent.setAdjacent(ForgeDirection.SOUTH, pBlockAccess.getBlock(pX, pY, pZ+1), pBlockAccess.getBlockMetadata(pX, pY, pZ+1));
+		_mAdjacent.setAdjacent(ForgeDirection.NORTH, pBlockAccess.getBlock(pX, pY, pZ-1), pBlockAccess.getBlockMetadata(pX, pY, pZ-1));
 
 		ForgeDirection tDir = ForgeDirection.getOrientation(pSide);
 		if (_mAdjacent.isEqualBlock(tDir))

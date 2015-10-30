@@ -1,6 +1,7 @@
-package eu.usrv.gtsu.multiblock;
+package eu.usrv.gtsu.multiblock.manager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -21,22 +22,26 @@ import org.apache.logging.log4j.Level;
 import cpw.mods.fml.common.FMLLog;
 import eu.usrv.gtsu.GTSUMod;
 import eu.usrv.gtsu.blocks.CoreBlock;
+import eu.usrv.gtsu.multiblock.BlockPosHelper;
+import eu.usrv.gtsu.multiblock.ControllerBlock;
+import eu.usrv.gtsu.multiblock.IMultiBlockComponent;
+import eu.usrv.gtsu.multiblock.MultiBlocks;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.GTSU_BlockType;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.MB_BlockState;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.kvMinMax;
 
-public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlockComponent
+public class MultiBlockStructManager
 {
-	protected List<BlockPoswID> tBlocksToScan = new ArrayList<BlockPoswID>();
-	protected List<BlockPoswID> newBlocksToScan = new ArrayList<BlockPoswID>();
-	protected Map<String, BlockPoswID> scannedBlocks = new HashMap<String, BlockPoswID>();
-	protected boolean _mMultiblockIsValid;
+	private List<BlockPoswID> tBlocksToScan = new ArrayList<BlockPoswID>();
+	private List<BlockPoswID> newBlocksToScan = new ArrayList<BlockPoswID>();
+	private Map<String, BlockPoswID> scannedBlocks = new HashMap<String, BlockPoswID>();
+	private boolean _mMultiblockIsValid;
 	private long _mLastRandomScan;
 	private Random _mRnd;
 	
-	protected MB_BlockState _mMBState;
-	protected int[][] offSets = new int[][]
+	private MB_BlockState _mMBState;
+	private int[][] offSets = new int[][]
 			{
 			{1, 0, 0},
 			{-1, 0, 0},
@@ -46,17 +51,24 @@ public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlock
 			{0, 0, -1} 
 			};
 
-	public TEMultiBlockBase()
+	public MultiBlockStructManager(int pX, int pY, int pZ)
 	{
+		tBlocksToScan.add(new BlockPoswID(pX, pY, pZ));
+		
 		_mRnd = new Random(System.currentTimeMillis());
 		_mMultiblockIsValid = false;
 	}
 
+	public Map<String, BlockPoswID> getMBStruct()
+	{
+		return Collections.unmodifiableMap(scannedBlocks);
+	}
+	
 	/** Scan the given block and all his adjacent blocks; if they are valid, continue to scan those adjacent, 
 	 * until no more valid blocks could be found
 	 * @param pWorld
 	 */
-	public void scanMultiblockStructure(World pWorld)
+	public boolean scanMultiblockStructure(World pWorld)
 	{
 		BlockPoswID tMasterBlock = null;
 		do
@@ -123,12 +135,14 @@ public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlock
 		while(tBlocksToScan.size() > 0);
 
 		if (!checkForValidStructure(scannedBlocks))
-			FMLLog.log(Level.INFO, "Multiblock structure is invalid");
+		{
+			return false;
+		}
 		else
 		{
 			_mMultiblockIsValid = true;
 			notifyTEComponents(pWorld, tMasterBlock);
-			FMLLog.log(Level.INFO, "Multiblock structure is valid");
+			return true;
 		}
 	}
 
@@ -172,11 +186,8 @@ public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlock
 	 * Read our MultiBlock state from NBT, so we skip the rescan of our structure
 	 * @param pCompound
 	 */
-	@Override
-	public void readFromNBT(NBTTagCompound pCompound)
+	public void loadFromNBT(NBTTagCompound pCompound)
 	{
-		super.readFromNBT(pCompound);
-		
 		scannedBlocks = new HashMap<String, BlockPosHelper.BlockPoswID>();
 		
 		NBTTagList tBlocks = pCompound.getTagList("scannedBlocks", Constants.NBT.TAG_COMPOUND);
@@ -194,11 +205,8 @@ public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlock
 	 * Save all scanned blocks to NBT
 	 * @param pCompound
 	 */
-	@Override
-	public void writeToNBT(NBTTagCompound pCompound)
+	public void saveToNBT(NBTTagCompound pCompound)
 	{
-		super.writeToNBT(pCompound);
-
 		// Only store structure if it is valid
 		if (!_mMultiblockIsValid)
 			return;
@@ -216,7 +224,7 @@ public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlock
 	 * @param pWorld
 	 * @return
 	 */
-	protected boolean randomCheckStructure(World pWorld)
+	private boolean randomCheckStructure(World pWorld)
 	{
 		long tCurrentMilis = System.currentTimeMillis();
 		boolean tFlag = false;
@@ -271,7 +279,7 @@ public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlock
 	 * @param pScannedBlocks
 	 * @return
 	 */
-	protected boolean checkForValidStructure(Map<String, BlockPoswID> pScannedBlocks) {
+	private static boolean checkForValidStructure(Map<String, BlockPoswID> pScannedBlocks) {
 		boolean tResult = true;
 		BlockTypeCount bc = new BlockTypeCount<GTSU_BlockType>();
 
@@ -336,7 +344,7 @@ public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlock
 	 * @param pBlockType
 	 * @return
 	 */
-	private boolean isBlockInValidPosition(World pWorld, BlockPoswID pBlockPos) 
+	private static boolean isBlockInValidPosition(World pWorld, BlockPoswID pBlockPos) 
 	{
 		boolean tResult = false;
 
@@ -420,7 +428,7 @@ public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlock
 	 * @param pBlockMeta
 	 * @return
 	 */
-	public GTSU_BlockType getBlockTypeFromBlock(Block pBlock, BlockPoswID pBlockPos)
+	public static GTSU_BlockType getBlockTypeFromBlock(Block pBlock, BlockPoswID pBlockPos)
 	{
 		GTSU_BlockType tRet = GTSU_BlockType.INVALID;
 
@@ -439,5 +447,9 @@ public abstract class TEMultiBlockBase extends TileEntity implements IMultiBlock
 
 
 		return tRet;
+	}
+
+	public boolean isValidMultiBlock() {
+		return _mMultiblockIsValid;
 	}
 }

@@ -16,7 +16,7 @@ import eu.usrv.gtsu.helper.EnergySystemConverter.PowerSystem;
 import gregtech.api.interfaces.tileentity.IEnergyConnected;
 import gregtech.api.metatileentity.BaseTileEntity;
 
-public class TEGT5EnergyOutput extends TEGT5Base implements IEnergyConnected {
+public class TEGT5EnergyOutput extends GTSUMBSlaveBlockBase implements IEnergyConnected {
 	private byte _mVoltageIdx;
 	private long _mVoltageOut;
 	private byte _mColor;
@@ -90,6 +90,7 @@ public class TEGT5EnergyOutput extends TEGT5Base implements IEnergyConnected {
 			}
 		}			                            
 	}
+	
 	@Override
 	public void validate() {
 		super.validate();
@@ -118,7 +119,6 @@ public class TEGT5EnergyOutput extends TEGT5Base implements IEnergyConnected {
 	}
 
 	public void produceEnergy() {
-		//boolean powered = getWorldObj().getStrongestIndirectPower(xCoord, yCoord, zCoord) > 0;
 		long usedEU = 0;
 		
 		if (!_mStructureValid)
@@ -179,14 +179,14 @@ public class TEGT5EnergyOutput extends TEGT5Base implements IEnergyConnected {
 	public boolean doScrewdriver(EntityPlayer pPlayer) 
 	{
 		if (pPlayer.isSneaking())
-			_mVoltageIdx--;
+			_mAmperageOut++;
 		else
 			_mVoltageIdx++;
 		
 		if (_mVoltageIdx >= V.length)
 			_mVoltageIdx = 0;
-		else if (_mVoltageIdx < 0)
-			_mVoltageIdx = (byte) (V.length - 1);
+		if (_mAmperageOut > 16)
+			_mAmperageOut = 1;
 		
 		
 		setVoltageByIndex(_mVoltageIdx);
@@ -197,6 +197,21 @@ public class TEGT5EnergyOutput extends TEGT5Base implements IEnergyConnected {
 	
 	@Override
 	public boolean doWrench(EntityPlayer pPlayer) {
+		return false;
+	}
+
+	@Override
+	public void doBareHand(EntityPlayer pPlayer) {
+		PlayerChatHelper.SendInfo(pPlayer, String.format("Vout: %d EU/t @ %d Amp", _mVoltageOut, _mAmperageOut));		
+	}
+
+	@Override
+	public boolean doHardHammer(EntityPlayer pPlayer) {
+		return false;
+	}
+
+	@Override
+	public boolean doSoftHammer(EntityPlayer pPlayer) {
 		return false;
 	}
 }

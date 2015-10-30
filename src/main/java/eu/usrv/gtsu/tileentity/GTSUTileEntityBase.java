@@ -1,18 +1,21 @@
-package eu.usrv.gtsu.gregtech;
+package eu.usrv.gtsu.tileentity;
 
 import java.util.Map;
 
+import cpw.mods.fml.common.FMLLog;
 import gregtech.api.GregTech_API;
 import static gregtech.api.enums.GT_Values.GT;
 import static gregtech.api.enums.GT_Values.NW;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.interfaces.tileentity.IHasWorldObjectAndCoords;
 import gregtech.api.net.GT_Packet_Block_Event;
+import gregtech.api.util.GT_ModHandler;
 import gregtech.api.util.GT_Utility;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.IInventory;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
@@ -20,8 +23,115 @@ import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.IFluidHandler;
 
-// This code is based on PowerCrystals PowerConverters
-public abstract class GT5EnergyNetTEBase extends TileEntity implements IHasWorldObjectAndCoords {
+/**
+ * Main TileEntity BaseClass for all TileEntities.
+ * Initially, required because the GT EnergyNet is a pain to use (GT5 that is), since it requires IHasWorldObjectAndCoords
+ * But after a while, more functions where added to it, and after several refractorings, i decided to use this as my main TE-Base
+ */
+public abstract class GTSUTileEntityBase extends TileEntity implements IHasWorldObjectAndCoords
+{
+	/**
+	 * Player tries to perform a Wrench-Action on the TE
+	 * You should return false if no action was performed, as the tool won't loose charge/durability then
+	 * @param pPlayer
+	 * @return true if any action was performed, false if not
+	 */
+	public abstract boolean doWrench(EntityPlayer pPlayer);
+
+	/**
+	 * Player tries to perform a Screwdriver-Action on the TE
+	 * You should return false if no action was performed, as the tool won't loose charge/durability then
+	 * @param pPlayer
+	 * @return true if any action was performed, false if not
+	 */
+	public abstract boolean doScrewdriver(EntityPlayer pPlayer);
+	
+	/**
+	 * Player just right-clicked the TE
+	 * @param pPlayer
+	 */
+	public abstract void doBareHand(EntityPlayer pPlayer);
+	
+	
+	/**
+	 * Player tries to perform a Hammer-Action on the TE
+	 * You should return false if no action was performed, as the tool won't loose charge/durability then
+	 * @param pPlayer
+	 * @return true if any action was performed, false if not
+	 */
+	public abstract boolean doHardHammer(EntityPlayer pPlayer);
+	
+	/**
+	 * Player tries to perform a SoftHammer-Action on the TE
+	 * You should return false if no action was performed, as the tool won't loose charge/durability then
+	 * @param pPlayer
+	 * @return true if any action was performed, false if not
+	 */
+	public abstract boolean doSoftHammer(EntityPlayer pPlayer);
+	
+	/**
+	 * A check if the player is in valid range of the TE.
+	 * Can be overwritten to perform additional security checks
+	 * @param aPlayer
+	 * @return
+	 */
+	public boolean isUseableByPlayer(EntityPlayer aPlayer) {return aPlayer.getDistanceSq(xCoord + 0.5, yCoord + 0.5, zCoord + 0.5) < 64; }
+
+	public final boolean onRightclick(EntityPlayer pPlayer, byte pSide, float pX, float pY, float pZ) 
+	{
+		if (isServerSide())
+		{
+			ItemStack tCurrentItem = pPlayer.inventory.getCurrentItem();
+			if (tCurrentItem != null)
+			{
+				if (GT_Utility.isStackInList(tCurrentItem, GregTech_API.sWrenchList))
+				{
+					if (doWrench(pPlayer))
+					{
+						GT_ModHandler.damageOrDechargeItem(tCurrentItem, 1, 1000, pPlayer);
+						GT_Utility.sendSoundToPlayers(worldObj, GregTech_API.sSoundList.get(100), 1.0F, -1, xCoord, yCoord, zCoord);
+					}						
+					return true;
+				}
+
+				if (GT_Utility.isStackInList(tCurrentItem, GregTech_API.sScrewdriverList)) 
+				{
+					if (doScrewdriver(pPlayer))
+					{
+						GT_ModHandler.damageOrDechargeItem(tCurrentItem, 1, 200, pPlayer);
+						GT_Utility.sendSoundToPlayers(worldObj, GregTech_API.sSoundList.get(100), 1.0F, -1, xCoord, yCoord, zCoord);
+					}
+					return true;
+				}
+				
+				if (GT_Utility.isStackInList(tCurrentItem, GregTech_API.sSoftHammerList)) 
+				{
+					if (doSoftHammer(pPlayer))
+					{
+						GT_ModHandler.damageOrDechargeItem(tCurrentItem, 1, 1000, pPlayer);
+						GT_Utility.sendSoundToPlayers(worldObj, GregTech_API.sSoundList.get(101), 1.0F, -1, xCoord, yCoord, zCoord);
+					}
+					return true;
+				}
+				
+				if (GT_Utility.isStackInList(tCurrentItem, GregTech_API.sHardHammerList)) 
+				{
+					if (doHardHammer(pPlayer))
+					{
+						GT_ModHandler.damageOrDechargeItem(tCurrentItem, 1, 1000, pPlayer);
+						GT_Utility.sendSoundToPlayers(worldObj, GregTech_API.sSoundList.get(1), 1.0F, -1, xCoord, yCoord, zCoord);
+					}
+					return true;
+				}
+
+			}
+			else
+				doBareHand(pPlayer);
+		}
+		return true;
+	}
+	
+	
 	/**
 	 * If this TileEntity checks for the Chunk to be loaded before returning World based values.
 	 * The AdvPump hacks this to false to ensure everything runs properly even when far Chunks are not actively loaded.

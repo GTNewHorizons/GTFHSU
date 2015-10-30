@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import eu.usrv.gtsu.TierHelper;
-import eu.usrv.gtsu.gregtech.GT5EnergyNetTEBase;
 import eu.usrv.gtsu.helper.BlockPosition;
 import eu.usrv.gtsu.helper.EnergySystemConverter.PowerSystem;
 import eu.usrv.gtsu.helper.PlayerChatHelper;
@@ -20,7 +19,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
 import static eu.usrv.gtsu.TierHelper.V;
 
-public class TEGT5EnergyInput extends TEGT5Base implements IEnergyConnected {
+public class TEGT5EnergyInput extends GTSUMBSlaveBlockBase implements IEnergyConnected {
 	private byte _mVoltageIdx;
 	private long _mMaxSafeVoltage;
 	private byte _mColor;
@@ -191,18 +190,16 @@ public class TEGT5EnergyInput extends TEGT5Base implements IEnergyConnected {
 	public boolean doScrewdriver(EntityPlayer pPlayer) 
 	{
 		if (pPlayer.isSneaking())
-			_mVoltageIdx--;
+			_mMaxAmperage++;
 		else
 			_mVoltageIdx++;
 		
 		if (_mVoltageIdx >= V.length)
 			_mVoltageIdx = 0;
-		else if (_mVoltageIdx < 0)
-			_mVoltageIdx = (byte) (V.length - 1);
-
+		if (_mMaxAmperage > 16)
+			_mMaxAmperage = 1;
 		
 		setVoltageByIndex(_mVoltageIdx);
-
 		PlayerChatHelper.SendInfo(pPlayer, String.format("Vin: %d EU/t @ %d Amp", _mMaxSafeVoltage, _mMaxAmperage));
 		
 		return true;
@@ -210,6 +207,22 @@ public class TEGT5EnergyInput extends TEGT5Base implements IEnergyConnected {
 	
 	@Override
 	public boolean doWrench(EntityPlayer pPlayer) {
+		return false;
+	}
+
+	@Override
+	public void doBareHand(EntityPlayer pPlayer) {
+		// TODO: Add a fancy GUI later
+		PlayerChatHelper.SendInfo(pPlayer, String.format("Vin: %d EU/t @ %d Amp", _mMaxSafeVoltage, _mMaxAmperage));
+	}
+
+	@Override
+	public boolean doHardHammer(EntityPlayer pPlayer) {
+		return false;
+	}
+
+	@Override
+	public boolean doSoftHammer(EntityPlayer pPlayer) {
 		return false;
 	}
 }

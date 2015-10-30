@@ -1,37 +1,35 @@
 package eu.usrv.gtsu.tileentity;
 
-import static eu.usrv.gtsu.TierHelper.V;
-
-import java.util.HashMap;
 import java.util.Map;
+
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.World;
 
 import org.apache.logging.log4j.Level;
 
 import cpw.mods.fml.common.FMLLog;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.World;
-import eu.usrv.gtsu.TierHelper;
 import eu.usrv.gtsu.helper.PlayerChatHelper;
 import eu.usrv.gtsu.helper.EnergySystemConverter.PowerSystem;
-import eu.usrv.gtsu.helper.Enums.EN_EnergyType;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.GTSU_BlockType;
-import eu.usrv.gtsu.multiblock.BlockPosHelper.MB_BlockState;
-import eu.usrv.gtsu.multiblock.IMultiBlockComponent;
-import eu.usrv.gtsu.multiblock.TEMultiBlockBase;
+import eu.usrv.gtsu.multiblock.manager.MultiBlockStructManager;
 
 // This is our main controller block
-public class TEMBControllerBlock extends TEMultiBlockBase
+public class TEMBControllerBlock extends GTSUTileEntityBase
 {
-	// Our stored energy. This is *not* EU, nor RF, nor anything else. It's a new PowerSystem, with blackjack, and hookers!
+	// Our stored energy. This is *not* EU, nor RF, nor anything else
 	private long _mEnergy;
 	private long _mMaxEnergy;
 	private final static double _mEnergyPerElement = 10000000.0D;
-	//private HashMap<GTSU_BlockType, IMultiBlock> _mMultiBlockCompound;
+	
+	private MultiBlockStructManager _mMBSM = null;
 	
 	public static final String NBTVAL_ENERGY = "mEnergy";
+	
+	public TEMBControllerBlock()
+	{
+	}
 	
 	/** 
 	 * More of an internal function to check if we have enough powerUnits stored to provide given EnergyUnits
@@ -163,6 +161,8 @@ public class TEMBControllerBlock extends TEMultiBlockBase
 		
 		_mEnergy = nbttagcompound.getLong(NBTVAL_ENERGY);
 		FMLLog.log(Level.INFO, "Data loaded from NBT: %d", _mEnergy);
+		if (_mMBSM != null)
+			_mMBSM.loadFromNBT(nbttagcompound);
 	}
 	
 	@Override
@@ -172,6 +172,8 @@ public class TEMBControllerBlock extends TEMultiBlockBase
 
 		nbttagcompound.setLong(NBTVAL_ENERGY, _mEnergy);
 		FMLLog.log(Level.INFO, "Data written to NBT: E: %d", _mEnergy);
+		if (_mMBSM != null)
+			_mMBSM.saveToNBT(nbttagcompound);
 	}
 
 	/**
@@ -180,8 +182,11 @@ public class TEMBControllerBlock extends TEMultiBlockBase
 	 */
 	private void calculateStorageSize()
 	{
+		if (_mMBSM == null)
+			return;
+		
 		double tCapacitorElements = 0.0D;
-		for (Map.Entry<String, BlockPoswID> tElmt : scannedBlocks.entrySet())
+		for (Map.Entry<String, BlockPoswID> tElmt : _mMBSM.getMBStruct().entrySet())
 		{
 			if (tElmt.getValue().blockType == GTSU_BlockType.CAPACITORELEMENT || tElmt.getValue().blockType == GTSU_BlockType.CAPACITORELEMENT_VISIBLE)
 				tCapacitorElements++;
@@ -219,7 +224,7 @@ public class TEMBControllerBlock extends TEMultiBlockBase
 	private void updateCapacitorBlocks(World pWorld)
 	{
 		int tMeta = new Double(15.0D / 100.0D * (double)calcFillLevel()).intValue();
-		for (Map.Entry<String, BlockPoswID> tElmt : scannedBlocks.entrySet())
+		for (Map.Entry<String, BlockPoswID> tElmt : _mMBSM.getMBStruct().entrySet())
 		{
 			BlockPoswID tBlock = tElmt.getValue();
 			if (tBlock.blockType == GTSU_BlockType.CAPACITORELEMENT_VISIBLE)
@@ -228,10 +233,46 @@ public class TEMBControllerBlock extends TEMultiBlockBase
 	}
 
 	@Override
-	public void updateMBStruct(boolean pStructValid, BlockPoswID pControllerBlock) {
-		// Nothing to do. We are a master block
+	public boolean doScrewdriver(EntityPlayer pPlayer) {
+		return false;
 	}
 	
+	@Override
+	public boolean doWrench(EntityPlayer pPlayer) {
+		return false;
+	}
+
+	@Override
+	public void doBareHand(EntityPlayer pPlayer) {
+	
+	}
+
+	@Override
+	public boolean doHardHammer(EntityPlayer pPlayer) {
+		return false;
+	}
+
+	@Override
+	public boolean doSoftHammer(EntityPlayer pPlayer) {
+		if (_mMBSM == null)
+			_mMBSM = new MultiBlockStructManager(xCoord, yCoord, zCoord);
+		
+		if (_mMBSM.scanMultiblockStructure(pPlayer.worldObj))
+			PlayerChatHelper.SendInfo(pPlayer, "Structure formed");
+		else
+			PlayerChatHelper.SendInfo(pPlayer, "Structure invalid");
+			
+		return true;
+	}
+
+	public boolean isValidMultiBlock() {
+		if (_mMBSM != null)
+			return _mMBSM.isValidMultiBlock();
+		else
+			return false;
+	}
+	
+	/*
 	@Override
 	public boolean isUseableByPlayer(EntityPlayer pPlayer) {
 		return true;
@@ -245,4 +286,5 @@ public class TEMBControllerBlock extends TEMultiBlockBase
 		PlayerChatHelper.SendInfo(pPlayer, String.format("Max Energy      : %d", _mMaxEnergy));
 		return true;
 	}
+	*/
 }

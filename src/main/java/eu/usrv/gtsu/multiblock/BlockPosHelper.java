@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import cpw.mods.fml.common.FMLLog;
+import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
