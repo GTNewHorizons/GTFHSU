@@ -40,7 +40,7 @@ public class MultiBlockStructManager
 	private Random _mRnd;
 	private long lastMBScan;
 	private int mbInstanceID;
-	
+
 	private MB_BlockState _mMBState;
 	private int[][] offSets = new int[][]
 			{
@@ -77,7 +77,7 @@ public class MultiBlockStructManager
 		long start = System.currentTimeMillis();
 		if (start - lastMBScan < 1000) // Prevent MultiBlock scan-spam
 			return false;
-		
+
 		lastMBScan = start;
 		BlockPoswID tMasterBlock = null;
 		int tBlockScanCycle = 0;
@@ -90,7 +90,7 @@ public class MultiBlockStructManager
 				BlockPoswID b = bEs.getValue();
 				// Get the Block in the world and its meta
 				Block tCurrentBlock = pWorld.getBlock(b.x, b.y, b.z);
-				
+
 				// Probably an external injected Block, or our initial Block. Populate ID, Meta Values and blocktype now
 				// For any other found block, these values are checked and set while scanning all adjacent blocks
 				if (b.blockID.equals("notset"))
@@ -154,7 +154,7 @@ public class MultiBlockStructManager
 					tBlockPos.meta = tBlockInQuestion.getDamageValue(pWorld, realX, realY, realZ);
 					tBlockPos.blockID = String.format("%d-%d-%d-%d", pWorld.provider.dimensionId, tBlockPos.x, tBlockPos.y, tBlockPos.z);
 					tBlockPos.blockType = getBlockTypeFromBlock(tBlockInQuestion, tBlockPos);
-					
+
 					if (tBlockPos.blockType == GTSU_BlockType.INVALID)
 					{
 						GTSUMod.Logger.info("Ignoring Block as its type is invalid");
@@ -177,7 +177,7 @@ public class MultiBlockStructManager
 							GTSUMod.Logger.info("scannedBlocks   : %b", scannedBlocks.containsKey(tBlockPos.blockID));
 							GTSUMod.Logger.info("newBlocksToScan : %b", newBlocksToScan.containsKey(tBlockPos.blockID));
 							GTSUMod.Logger.info("tBlocksToScan   : %b", tBlocksToScan.containsKey(tBlockPos.blockID));
-							*/
+							 */
 						}
 					}
 				}
@@ -195,21 +195,18 @@ public class MultiBlockStructManager
 
 		long stop = System.currentTimeMillis();
 		long totalTime = stop - start;
-		
+
 		GTSUMod.Logger.info("All Blocks have been analyzed; Found %d so far. Took %d ms", scannedBlocks.size(), totalTime);
 
-		if (!checkForValidStructure(scannedBlocks))
-		{
-			return false;
-		}
-		else
+		if (checkForValidStructure(scannedBlocks))
 		{
 			_mMultiblockIsValid = true;
 			notifyTEComponents(pWorld, tMasterBlock);
 			return true;
 		}
+		else
+			return false;
 	}
-
 
 	/**
 	 * Notify all TE components of our structure that we are the master block,
@@ -250,19 +247,46 @@ public class MultiBlockStructManager
 	 * Read our MultiBlock state from NBT, so we skip the rescan of our structure
 	 * @param pCompound
 	 */
-	public void loadFromNBT(NBTTagCompound pCompound)
+	public void loadFromNBT(NBTTagCompound pCompound, World pWorldObject)
 	{
-		scannedBlocks = new HashMap<String, BlockPosHelper.BlockPoswID>();
+		Map<String, BlockPosHelper.BlockPoswID> tLoadedBlocks = new HashMap<String, BlockPosHelper.BlockPoswID>();
+		BlockPoswID tMasterBlock = null;
 
 		NBTTagList tBlocks = pCompound.getTagList("scannedBlocks", Constants.NBT.TAG_COMPOUND);
 		for (int i = 0; i < tBlocks.tagCount(); i++)
 		{
 			NBTTagCompound tSubComp = tBlocks.getCompoundTagAt(i);
 			BlockPoswID tBlock = new BlockPoswID(tSubComp);
-			scannedBlocks.put(tBlock.blockID, tBlock);
+			if (tBlock.blockType == GTSU_BlockType.CONTROLLER)
+			{
+				if (tMasterBlock == null)
+					tMasterBlock = tBlock;
+				else
+				{
+					//Something weird happend. Don't continue to load as there can never be 2 masters
+					tLoadedBlocks = null;
+					break;
+				}
+			}
+			tLoadedBlocks.put(tBlock.blockID, tBlock);
 		}
 
-		FMLLog.log(Level.INFO, "%d Blocks loaded from NBT", scannedBlocks.size());
+		// Only continue if the loaded blocks didn't cancel, and we have a master block
+		if (tLoadedBlocks != null && tMasterBlock != null)
+		{
+			// Now validate the structure we just loaded
+			if (checkForValidStructure(tLoadedBlocks))
+			{
+				// The List from NBT is valid, now set the actual list of blocks to the one
+				// we've loaded and trigger the validate process
+				_mMultiblockIsValid = true;
+				scannedBlocks = tLoadedBlocks;
+				//notifyTEComponents(pWorldObject, tMasterBlock); // Does not work as the worldObject seems to be empty. Need to save the TE's on their own
+			}
+			// Something went wrong, the structure from NBT seems to be invalid.
+			// Either something went wrong while saving, or we have somekind of world corruption
+			// TODO: Check if we need to do something here
+		}
 	}
 
 	/**
@@ -273,14 +297,17 @@ public class MultiBlockStructManager
 	{
 		// Only store structure if it is valid
 		if (!_mMultiblockIsValid)
+		{
+			GTSUMod.Logger.info("Not saving structure, as it is invalid");
 			return;
+		}
 
 		NBTTagList tBlocks = new NBTTagList();
 		for (Entry<String, BlockPoswID> tBlockMap : scannedBlocks.entrySet())
 			tBlocks.appendTag(tBlockMap.getValue().getTagCompound());
 
 		pCompound.setTag("scannedBlocks", tBlocks);
-		FMLLog.log(Level.INFO, "%d Blocks written to NBT", tBlocks.tagCount());
+		GTSUMod.Logger.info("%d Blocks written to NBT", tBlocks.tagCount());
 	}
 
 	/**
@@ -332,7 +359,6 @@ public class MultiBlockStructManager
 				tFlag = false; // Block at position has changed; Assume the MB is invalid
 				break;
 			}
-
 		}
 
 		return tFlag;
@@ -366,7 +392,7 @@ public class MultiBlockStructManager
 			{
 				tResult = false;
 				GTSUMod.Logger.info("Structure is invalid. Type %s: Found %d min %d max %d", tbt, num, mm.Min, mm.Max);
- 
+
 				break;
 			}
 		}
@@ -515,7 +541,7 @@ public class MultiBlockStructManager
 
 		else if (pBlock instanceof BlockMBController)
 			tRet = GTSU_BlockType.CONTROLLER;
-		
+
 		else if (pBlock instanceof BlockGT5EnergyUnit)
 		{
 			if (pBlockPos.meta == BlockGT5EnergyUnit.ID_Acceptor)

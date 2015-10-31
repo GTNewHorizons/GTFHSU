@@ -9,6 +9,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import eu.usrv.gtsu.GTSUMod;
 import eu.usrv.gtsu.blocks.itemblocks.ItemBlockGT5EnergyUnit;
 import eu.usrv.gtsu.blocks.itemblocks.ItemBlockMBController;
 import eu.usrv.gtsu.tileentity.TEGT5EnergyInput;
@@ -20,6 +21,8 @@ public class BlockMBController extends GTSU_GenericBlock {
 	protected IIcon icValid;
 	@SideOnly(Side.CLIENT)
 	protected IIcon icInvalid;
+	@SideOnly(Side.CLIENT)
+	protected IIcon icInvalid2;	
 	
 	public BlockMBController() {
 		super(ItemBlockMBController.class, "MultiblockController", Material.iron);
@@ -35,24 +38,36 @@ public class BlockMBController extends GTSU_GenericBlock {
 	{
 		icValid= r.registerIcon("GTSU:multiblock/controller_on");
 		icInvalid = r.registerIcon("GTSU:multiblock/controller_off");
+		icInvalid2 = r.registerIcon("GTSU:multiblock/controller");
 	}
 	
-	@Override
+	@SideOnly(Side.CLIENT)
+	@Override	
 	public IIcon getIcon(int p_149691_1_, int p_149691_2_) {
-		return icInvalid;
+		return icInvalid2;
 	}
 	
+	@SideOnly(Side.CLIENT)
 	@Override
 	public IIcon getIcon(IBlockAccess pWorld, int pX, int pY, int pZ, int pMeta) {
 		if (pWorld.getTileEntity(pX, pY, pZ) != null)
+		{
 			if (pWorld.getTileEntity(pX, pY, pZ) instanceof TEMBControllerBlock)
 			{
 				TEMBControllerBlock tController = (TEMBControllerBlock) pWorld.getTileEntity(pX, pY, pZ);
 				if (tController.isValidMultiBlock())
+				{
+					GTSUMod.Logger.info("Valid: true");
 					return icValid;
+				}
+				else
+				{
+					GTSUMod.Logger.info("Valid: false");
+					return icInvalid;
+				}
 			}
-		
-		return icInvalid;
+		}
+		return icInvalid2;
 	}
 	
 	@Override
