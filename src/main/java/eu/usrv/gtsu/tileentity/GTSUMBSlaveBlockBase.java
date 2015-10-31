@@ -2,6 +2,10 @@ package eu.usrv.gtsu.tileentity;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.NetworkManager;
+import net.minecraft.network.Packet;
+import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.oredict.OreDictionary;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
@@ -53,11 +57,65 @@ public abstract class GTSUMBSlaveBlockBase extends GTSUTileEntityBase implements
 	}
 
 	@Override
+	public void updateEntity() {
+		super.updateEntity();
+		if (isClientSide())
+			return;
+		
+		if (getRandomNumber(20) != 0)
+			return;
+	}
+	
+	@Override
+	public void writeToNBT(NBTTagCompound pNBT) {
+		super.writeToNBT(pNBT);
+		if (_mStructureValid)
+			if (_mMasterBlock != null)
+				pNBT.setTag("mMasterBlock", _mMasterBlock.getTagCompound());
+	}
+
+
+	@Override
+	public void readFromNBT(NBTTagCompound pNBT) {
+		super.readFromNBT(pNBT);
+		if (pNBT.hasKey("mMasterBlock"))
+		{
+			_mMasterBlock = new BlockPoswID(pNBT.getCompoundTag("mMasterBlock"));
+			TileEntity tMasterBlock = worldObj.getTileEntity(_mMasterBlock.x, _mMasterBlock.y, _mMasterBlock.z);
+			if (tMasterBlock != null && tMasterBlock instanceof TEMBControllerBlock)
+			{
+				_mStructureValid = ((TEMBControllerBlock)tMasterBlock).isValidMultiBlock();
+				worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+			}
+		}
+	}
+
+	@Override
 	public final void updateMBStruct(boolean pStructValid, BlockPoswID pControllerBlock) {
 		_mStructureValid = pStructValid;
 		_mMasterBlock = pControllerBlock;
+	}
+	
+	// Client Sync to display textures
+	@Override
+	public Packet getDescriptionPacket() {
+		NBTTagCompound tagCompound = new NBTTagCompound();
 
+		tagCompound.setBoolean("isValid", _mStructureValid);
+		return new S35PacketUpdateTileEntity(xCoord, yCoord, zCoord, 1, tagCompound);
 	}
 
+	@Override
+	public void onDataPacket(NetworkManager networkManager, S35PacketUpdateTileEntity packet) {
+		NBTTagCompound tComp = packet.func_148857_g();
+
+		if (tComp != null)
+		{
+			if (tComp.hasKey("isValid"))
+			{
+				_mStructureValid = tComp.getBoolean("isValid");
+			}
+		}
+	}
 }
 

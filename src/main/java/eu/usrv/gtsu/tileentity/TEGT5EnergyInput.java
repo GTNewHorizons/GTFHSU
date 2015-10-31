@@ -223,6 +223,7 @@ public class TEGT5EnergyInput extends GTSUMBSlaveBlockBase implements IEnergyCon
 
 	@Override
 	public boolean doSoftHammer(EntityPlayer pPlayer) {
+		PlayerChatHelper.SendInfo(pPlayer, String.format("Has masterBlock: %b", _mMasterBlock == null ? false : true));
 		return false;
 	}
 }

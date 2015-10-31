@@ -341,6 +341,7 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 		return _mMultiblockValid;
 	}
 
+	// Client Sync to display textures
 	private boolean _mMultiblockValid;
 	@Override
 	public Packet getDescriptionPacket() {
