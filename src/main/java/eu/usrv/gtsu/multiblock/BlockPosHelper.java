@@ -45,13 +45,7 @@ public class BlockPosHelper {
 
 		public BlockPoswID(int px, int py, int pz)
 		{
-			x=px;
-			y=py;
-			z=pz;
-			blockID= "";
-			meta = 0;
-			validPosition = false;
-			blockType = GTSU_BlockType.INVALID;	
+			this(px, py, pz, "notset", GTSU_BlockType.INVALID, false);
 		}
 	
 		public BlockPoswID(int px, int py, int pz, String pblockID, GTSU_BlockType pblockType, boolean pValidPos)
@@ -125,13 +119,26 @@ public class BlockPosHelper {
 	private static void InitMinMax()
 	{
 		GTSU_MinMaxValues = new HashMap<GTSU_BlockType, kvMinMax>();
+		// The bank needs at least one frame and glass. The maximum number is not limited
 		GTSU_MinMaxValues.put(GTSU_BlockType.GLASS, new kvMinMax(1,-1));
 		GTSU_MinMaxValues.put(GTSU_BlockType.FRAME, new kvMinMax(1,-1));
+		
+		// Must contain at least one input and one output, also needs one controller 
 		GTSU_MinMaxValues.put(GTSU_BlockType.INPUT, new kvMinMax(1,-1));
 		GTSU_MinMaxValues.put(GTSU_BlockType.OUTPUT, new kvMinMax(1,-1));
-		GTSU_MinMaxValues.put(GTSU_BlockType.REDSTONE, new kvMinMax(0,-1));
 		GTSU_MinMaxValues.put(GTSU_BlockType.CONTROLLER, new kvMinMax(1,1));
+
+		// Doesn't require Redstone, but can have multiple ones, for advanced redstone logic
+		// Same goes for the laserlink
+		GTSU_MinMaxValues.put(GTSU_BlockType.REDSTONE, new kvMinMax(0,-1));
 		GTSU_MinMaxValues.put(GTSU_BlockType.LASERLINK, new kvMinMax(0,-1));
-		GTSU_MinMaxValues.put(GTSU_BlockType.CAPACITORELEMENT, new kvMinMax(1,-1));
+		
+		// The capacitorbank must contain at least one visible, but can contain 0 invisible core elements
+		GTSU_MinMaxValues.put(GTSU_BlockType.CAPACITORELEMENT, new kvMinMax(0,-1));
+		GTSU_MinMaxValues.put(GTSU_BlockType.CAPACITORELEMENT_VISIBLE, new kvMinMax(1,-1));
+		
+		// Both invalid and air must be 0 in the structure
+		GTSU_MinMaxValues.put(GTSU_BlockType.INVALID, new kvMinMax(0,0));
+		GTSU_MinMaxValues.put(GTSU_BlockType.AIR, new kvMinMax(0,0));
 	}
 }

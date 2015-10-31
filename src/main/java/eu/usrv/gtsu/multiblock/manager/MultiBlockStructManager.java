@@ -2,9 +2,7 @@ package eu.usrv.gtsu.multiblock.manager;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -21,24 +19,27 @@ import org.apache.logging.log4j.Level;
 
 import cpw.mods.fml.common.FMLLog;
 import eu.usrv.gtsu.GTSUMod;
+import eu.usrv.gtsu.blocks.BlockGT5EnergyUnit;
+import eu.usrv.gtsu.blocks.BlockMBController;
 import eu.usrv.gtsu.blocks.CoreBlock;
 import eu.usrv.gtsu.multiblock.BlockPosHelper;
-import eu.usrv.gtsu.multiblock.ControllerBlock;
-import eu.usrv.gtsu.multiblock.IMultiBlockComponent;
-import eu.usrv.gtsu.multiblock.MultiBlocks;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.GTSU_BlockType;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.MB_BlockState;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.kvMinMax;
+import eu.usrv.gtsu.multiblock.IMultiBlockComponent;
+import eu.usrv.gtsu.multiblock.MultiBlocks;
 
 public class MultiBlockStructManager
 {
-	private List<BlockPoswID> tBlocksToScan = new ArrayList<BlockPoswID>();
-	private List<BlockPoswID> newBlocksToScan = new ArrayList<BlockPoswID>();
+	private Map<String, BlockPoswID> tBlocksToScan = new HashMap<String, BlockPoswID>();
+	private Map<String, BlockPoswID> newBlocksToScan = new HashMap<String, BlockPoswID>();
 	private Map<String, BlockPoswID> scannedBlocks = new HashMap<String, BlockPoswID>();
 	private boolean _mMultiblockIsValid;
 	private long _mLastRandomScan;
 	private Random _mRnd;
+	private long lastMBScan;
+	private int mbInstanceID;
 	
 	private MB_BlockState _mMBState;
 	private int[][] offSets = new int[][]
@@ -53,9 +54,10 @@ public class MultiBlockStructManager
 
 	public MultiBlockStructManager(int pX, int pY, int pZ)
 	{
-		tBlocksToScan.add(new BlockPoswID(pX, pY, pZ));
-		
+		tBlocksToScan.put("notset", new BlockPoswID(pX, pY, pZ));
+
 		_mRnd = new Random(System.currentTimeMillis());
+		mbInstanceID = _mRnd.nextInt(Integer.MAX_VALUE);
 		_mMultiblockIsValid = false;
 	}
 
@@ -63,18 +65,81 @@ public class MultiBlockStructManager
 	{
 		return Collections.unmodifiableMap(scannedBlocks);
 	}
-	
+
+
 	/** Scan the given block and all his adjacent blocks; if they are valid, continue to scan those adjacent, 
 	 * until no more valid blocks could be found
+	 * TODO: Make this a runnable
 	 * @param pWorld
 	 */
 	public boolean scanMultiblockStructure(World pWorld)
 	{
+		long start = System.currentTimeMillis();
+		if (start - lastMBScan < 1000) // Prevent MultiBlock scan-spam
+			return false;
+		
+		lastMBScan = start;
 		BlockPoswID tMasterBlock = null;
+		int tBlockScanCycle = 0;
 		do
 		{
-			for (BlockPoswID b : tBlocksToScan)
+			tBlockScanCycle++;
+			GTSUMod.Logger.info("Multiblock scan; Run %d; Blocks to scan: %d", tBlockScanCycle, tBlocksToScan.size());
+			for (Entry<String, BlockPoswID> bEs : tBlocksToScan.entrySet())
 			{
+				BlockPoswID b = bEs.getValue();
+				// Get the Block in the world and its meta
+				Block tCurrentBlock = pWorld.getBlock(b.x, b.y, b.z);
+				
+				// Probably an external injected Block, or our initial Block. Populate ID, Meta Values and blocktype now
+				// For any other found block, these values are checked and set while scanning all adjacent blocks
+				if (b.blockID.equals("notset"))
+				{
+					GTSUMod.Logger.info("Block info not set, probably our initial block");
+					int tBlockMeta = tCurrentBlock.getDamageValue(pWorld, b.x, b.y, b.z);
+
+					// Assign the Unique BlockID to this block, so not scan blocks twice.
+					// This doesn't need the MetaVal, as it will only keep track of the position, not the blocktype
+					String tBlockID = String.format("%d-%d-%d-%d", pWorld.provider.dimensionId, b.x, b.y, b.z);
+					GTSUMod.Logger.info("BlockID is %s", tBlockID);
+
+					b.blockID = tBlockID;
+					b.meta = tBlockMeta;
+					b.blockType = getBlockTypeFromBlock(tCurrentBlock, b);
+					// TODO: What happens if this block is type invalid?
+				}
+				GTSUMod.Logger.info("Current Block is: %s", b.blockType);
+
+				// Do we have a CapacitorElement? Check if it is visible to the player
+				if (b.blockType == GTSU_BlockType.CAPACITORELEMENT)
+				{
+					GTSUMod.Logger.info("Checking if capacitor element is visible...");
+					for (ForgeDirection pDir : ForgeDirection.VALID_DIRECTIONS)
+					{
+						Block tAdjBlock = BlockPosHelper.getAdjacentBlockForPos(pWorld, b.x, b.y, b.z, pDir);
+						BlockPoswID tAdjBlockPos = new BlockPoswID(b.x + pDir.offsetX, b.y + pDir.offsetY, b.z + pDir.offsetZ);
+						tAdjBlockPos.meta = tAdjBlock.getDamageValue(pWorld, tAdjBlockPos.x, tAdjBlockPos.y, tAdjBlockPos.z);
+						tAdjBlockPos.blockType = getBlockTypeFromBlock(tAdjBlock, tAdjBlockPos);
+
+						if (tAdjBlockPos.blockType == GTSU_BlockType.GLASS)
+						{
+							// We found a GlassBlock. Change the BlockType to Visible
+							b.blockType = GTSU_BlockType.CAPACITORELEMENT_VISIBLE;
+							GTSUMod.Logger.info("...it is");
+							break;
+						}
+					}
+				}
+				b.validPosition = isBlockInValidPosition(pWorld, b); 
+				GTSUMod.Logger.info("Block has a valid position: %b", b.validPosition);
+
+				if (b.blockType == GTSU_BlockType.CONTROLLER)
+				{
+					GTSUMod.Logger.info("Block is our MasterBlock");
+					tMasterBlock = b;
+				}
+
+				// Now we loop all offsets (adjacent blocks of our block "b") and check if that block needs to be scanned next turn
 				for (int[] tNum : offSets)
 				{
 					int realX, realY, realZ;
@@ -82,57 +147,56 @@ public class MultiBlockStructManager
 					realX = b.x + tNum[0];
 					realY = b.y + tNum[1];
 					realZ = b.z + tNum[2];
+					GTSUMod.Logger.info("Analysing adjacent Block at %d %d %d", realX, realY, realZ);
+					Block tBlockInQuestion = pWorld.getBlock(realX, realY, realZ);
 
 					BlockPoswID tBlockPos = new BlockPoswID(realX, realY, realZ);
-
-					Block tCurrentBlock = pWorld.getBlock(realX, realY, realZ);
-
-					String tBlockID = String.format("%d-%d-%d-%d", pWorld.provider.dimensionId, realX, realY, realZ);
-					tBlockPos.meta = tCurrentBlock.getDamageValue(pWorld, realX, realY, realZ);
-					tBlockPos.blockType = getBlockTypeFromBlock(tCurrentBlock, tBlockPos);
-
-
+					tBlockPos.meta = tBlockInQuestion.getDamageValue(pWorld, realX, realY, realZ);
+					tBlockPos.blockID = String.format("%d-%d-%d-%d", pWorld.provider.dimensionId, tBlockPos.x, tBlockPos.y, tBlockPos.z);
+					tBlockPos.blockType = getBlockTypeFromBlock(tBlockInQuestion, tBlockPos);
+					
 					if (tBlockPos.blockType == GTSU_BlockType.INVALID)
-						continue;
-
-					// Do we have a CapacitorElement? Check if it is visible to the player
-					if (tBlockPos.blockType == GTSU_BlockType.CAPACITORELEMENT)
 					{
-						for (ForgeDirection pDir : ForgeDirection.VALID_DIRECTIONS)
+						GTSUMod.Logger.info("Ignoring Block as its type is invalid");
+						continue;
+					}
+					else
+					{
+						GTSUMod.Logger.info("Found a Multiblock component: %s", tBlockPos.blockType);
+						// Make sure we only add those components to the scanlist we
+						// haven't analyzed yet, or we found in this loop already, or are already set for a upcomming scan cycle
+						if (!scannedBlocks.containsKey(tBlockPos.blockID) && !newBlocksToScan.containsKey(tBlockPos.blockID) && !tBlocksToScan.containsKey(tBlockPos.blockID))
 						{
-							Block tAdjBlock = BlockPosHelper.getAdjacentBlockForPos(pWorld, tBlockPos.x, tBlockPos.y, tBlockPos.z, pDir);
-							BlockPoswID tAdjBlockPos = new BlockPoswID(tBlockPos.x + pDir.offsetX, tBlockPos.y + pDir.offsetY, tBlockPos.z + pDir.offsetZ);
-							tAdjBlockPos.meta = tAdjBlock.getDamageValue(pWorld, tAdjBlockPos.x, tAdjBlockPos.y, tAdjBlockPos.z);
-							tAdjBlockPos.blockType = getBlockTypeFromBlock(tAdjBlock, tAdjBlockPos);
-							
-							if (tAdjBlockPos.blockType == GTSU_BlockType.GLASS)
-							{
-								// We found a GlassBlock. Change the BlockType to Visible
-								tBlockPos.blockType = GTSU_BlockType.CAPACITORELEMENT_VISIBLE;
-								break;
-							}
+							//GTSUMod.Logger.info("Block enqueued for next scan cycle");	
+							newBlocksToScan.put(tBlockPos.blockID, tBlockPos);
+						}
+						else
+						{
+							/*
+							GTSUMod.Logger.info("Block not enqueued");
+							GTSUMod.Logger.info("scannedBlocks   : %b", scannedBlocks.containsKey(tBlockPos.blockID));
+							GTSUMod.Logger.info("newBlocksToScan : %b", newBlocksToScan.containsKey(tBlockPos.blockID));
+							GTSUMod.Logger.info("tBlocksToScan   : %b", tBlocksToScan.containsKey(tBlockPos.blockID));
+							*/
 						}
 					}
-					
-					
-					tBlockPos.validPosition = isBlockInValidPosition(pWorld, tBlockPos); 
-
-					if (tBlockPos.blockType == GTSU_BlockType.CONTROLLER)
-						tMasterBlock = tBlockPos;
-					
-					if (/*isValidMultiblockComponent(tCurrentBlock) && */!scannedBlocks.containsKey(tBlockID))
-					{
-						newBlocksToScan.add(tBlockPos);
-					}
 				}
-
 				scannedBlocks.put(b.blockID, b);
 			}
+
+			// Now clear the main list and copy over the new populated list with blocks that need to be analyzed
 			tBlocksToScan.clear();
 			tBlocksToScan = newBlocksToScan;
-			newBlocksToScan = new ArrayList<BlockPoswID>();
+
+			// Also prepare an empty list to add more "new blocks to scan"
+			newBlocksToScan = new HashMap<String, BlockPoswID>();
 		}
-		while(tBlocksToScan.size() > 0);
+		while(tBlocksToScan.size() > 0); // Will loop as long as the List of found adjacent blocks contains at least one block
+
+		long stop = System.currentTimeMillis();
+		long totalTime = stop - start;
+		
+		GTSUMod.Logger.info("All Blocks have been analyzed; Found %d so far. Took %d ms", scannedBlocks.size(), totalTime);
 
 		if (!checkForValidStructure(scannedBlocks))
 		{
@@ -146,7 +210,7 @@ public class MultiBlockStructManager
 		}
 	}
 
-	
+
 	/**
 	 * Notify all TE components of our structure that we are the master block,
 	 * and the structure is valid now, so they can begin to do their work 
@@ -156,32 +220,32 @@ public class MultiBlockStructManager
 		for (Entry<String, BlockPoswID> tBlockMap : scannedBlocks.entrySet())
 		{
 			BlockPoswID tBlock = tBlockMap.getValue();
-			
+
 			switch (tBlock.blockType)
 			{
-				case AIR:
-				case CAPACITORELEMENT:
-				case CAPACITORELEMENT_VISIBLE:
-				case FRAME:
-				case GLASS:
-				case CONTROLLER:
-				case INVALID:
-					break;
-				default:
-					break;
-				
-				case INPUT:
-				case LASERLINK:
-				case OUTPUT:
-				case REDSTONE:
-					TileEntity tTE = pWorld.getTileEntity(tBlock.x, tBlock.y, tBlock.z);
-					if (tTE != null && tTE instanceof IMultiBlockComponent)
-						((IMultiBlockComponent)tTE).updateMBStruct(true, pMasterBlock);
-					break;
+			case AIR:
+			case CAPACITORELEMENT:
+			case CAPACITORELEMENT_VISIBLE:
+			case FRAME:
+			case GLASS:
+			case CONTROLLER:
+			case INVALID:
+				break;
+			default:
+				break;
+
+			case INPUT:
+			case LASERLINK:
+			case OUTPUT:
+			case REDSTONE:
+				TileEntity tTE = pWorld.getTileEntity(tBlock.x, tBlock.y, tBlock.z);
+				if (tTE != null && tTE instanceof IMultiBlockComponent)
+					((IMultiBlockComponent)tTE).updateMBStruct(true, pMasterBlock);
+				break;
 			}
 		}
 	}
-	
+
 	/**
 	 * Read our MultiBlock state from NBT, so we skip the rescan of our structure
 	 * @param pCompound
@@ -189,7 +253,7 @@ public class MultiBlockStructManager
 	public void loadFromNBT(NBTTagCompound pCompound)
 	{
 		scannedBlocks = new HashMap<String, BlockPosHelper.BlockPoswID>();
-		
+
 		NBTTagList tBlocks = pCompound.getTagList("scannedBlocks", Constants.NBT.TAG_COMPOUND);
 		for (int i = 0; i < tBlocks.tagCount(); i++)
 		{
@@ -197,10 +261,10 @@ public class MultiBlockStructManager
 			BlockPoswID tBlock = new BlockPoswID(tSubComp);
 			scannedBlocks.put(tBlock.blockID, tBlock);
 		}
-			
+
 		FMLLog.log(Level.INFO, "%d Blocks loaded from NBT", scannedBlocks.size());
 	}
-	
+
 	/**
 	 * Save all scanned blocks to NBT
 	 * @param pCompound
@@ -210,7 +274,7 @@ public class MultiBlockStructManager
 		// Only store structure if it is valid
 		if (!_mMultiblockIsValid)
 			return;
-		
+
 		NBTTagList tBlocks = new NBTTagList();
 		for (Entry<String, BlockPoswID> tBlockMap : scannedBlocks.entrySet())
 			tBlocks.appendTag(tBlockMap.getValue().getTagCompound());
@@ -218,7 +282,7 @@ public class MultiBlockStructManager
 		pCompound.setTag("scannedBlocks", tBlocks);
 		FMLLog.log(Level.INFO, "%d Blocks written to NBT", tBlocks.tagCount());
 	}
-	
+
 	/**
 	 * Perform random Block-Checks on the structure
 	 * @param pWorld
@@ -241,9 +305,9 @@ public class MultiBlockStructManager
 			if (!idsToScan.contains(tRndID))
 				idsToScan.add(tRndID);
 			tLoopWatch++;
-				
+
 		} while(idsToScan.size() < randomAmount && tLoopWatch < 25);
-		
+
 		/*if (tCurrentMilis - _mLastRandomScan > 10000)
 		{
 			// Some time has passed; Maybe we need to do a full scan of all blocks?
@@ -252,23 +316,23 @@ public class MultiBlockStructManager
 		else
 		{
 			// Do a quick scan of a few blocks and check if they are still there
-			
+
 		}*/
 		for (int idx : idsToScan)
 		{
 			// The Block in our ScannedBlocks List to verify
 			BlockPoswID tStoredPos = (BlockPoswID) scannedBlocks.values().toArray()[idx];
 			BlockPoswID tPosToVerify = new BlockPoswID(tStoredPos.x, tStoredPos.y, tStoredPos.z);
-			
+
 			Block tWorldBlock = pWorld.getBlock(tStoredPos.x, tStoredPos.y, tStoredPos.z);
 			tPosToVerify.meta = tWorldBlock.getDamageValue(pWorld, tStoredPos.x, tStoredPos.y, tStoredPos.z);
-			
+
 			if (getBlockTypeFromBlock(tWorldBlock, tPosToVerify) != tStoredPos.blockType)
 			{
 				tFlag = false; // Block at position has changed; Assume the MB is invalid
 				break;
 			}
-			
+
 		}
 
 		return tFlag;
@@ -284,18 +348,25 @@ public class MultiBlockStructManager
 		BlockTypeCount bc = new BlockTypeCount<GTSU_BlockType>();
 
 		for (Entry<String, BlockPoswID> tBlockMap : pScannedBlocks.entrySet())
-			bc.Increment(tBlockMap.getValue().blockType);		
+		{
+			//FMLLog.info("= DUMP =: B[%s] X[%d] Y[%d] Z[%d]", tBlockMap.getValue().blockType, tBlockMap.getValue().x, tBlockMap.getValue().y, tBlockMap.getValue().z);
+			bc.Increment(tBlockMap.getValue().blockType);
+		}
 
 		for (GTSU_BlockType tbt: GTSU_BlockType.values())
 		{
 			kvMinMax mm = BlockPosHelper.getMinMaxValueForType(tbt);
 			int num = bc.GetNumber(tbt);
-			if (num >= mm.Min && num <= mm.Max)
+
+			// Check if we have at least .min. and .max. of that block.
+			// Or if we have .min. and .max. is unlimited
+			if ((num >= mm.Min && num <= mm.Max) || (num >= mm.Min && mm.Max == -1))
 				continue;
 			else
 			{
 				tResult = false;
-				FMLLog.log(Level.WARN, "Structure is invalid");
+				GTSUMod.Logger.info("Structure is invalid. Type %s: Found %d min %d max %d", tbt, num, mm.Min, mm.Max);
+ 
 				break;
 			}
 		}
@@ -442,9 +513,16 @@ public class MultiBlockStructManager
 		else if (pBlock instanceof CoreBlock)
 			tRet = GTSU_BlockType.CAPACITORELEMENT;
 
-		else if (pBlock instanceof ControllerBlock)
+		else if (pBlock instanceof BlockMBController)
 			tRet = GTSU_BlockType.CONTROLLER;
-
+		
+		else if (pBlock instanceof BlockGT5EnergyUnit)
+		{
+			if (pBlockPos.meta == BlockGT5EnergyUnit.ID_Acceptor)
+				tRet = GTSU_BlockType.INPUT;
+			else if (pBlockPos.meta == BlockGT5EnergyUnit.ID_Producer)
+				tRet = GTSU_BlockType.OUTPUT;
+		}
 
 		return tRet;
 	}

@@ -23,6 +23,7 @@ import eu.usrv.gtsu.blocks.itemblocks.ItemBlockCoreBlock;
 import eu.usrv.gtsu.blocks.itemblocks.ItemBlockGT5EnergyUnit;
 import eu.usrv.gtsu.blocks.itemblocks.ItemBlockGTSU;
 import eu.usrv.gtsu.gui.GuiHandler;
+import eu.usrv.gtsu.helper.LogHelper;
 import eu.usrv.gtsu.multiblock.MultiBlockItemBlock;
 import eu.usrv.gtsu.multiblock.MultiBlocks;
 import eu.usrv.gtsu.proxy.CommonProxy;
@@ -36,7 +37,9 @@ public class GTSUMod {
 
 	public static final String GTSU_MODID = "GTSU";
 	public static boolean developerMode = false;
-
+	public static LogHelper Logger = null;
+	
+	
 	@Instance(GTSUMod.GTSU_MODID)
 	public static GTSUMod instance;
 
@@ -45,6 +48,8 @@ public class GTSUMod {
 
 	@EventHandler
 	public void preInit(FMLPreInitializationEvent event){
+		Logger = new LogHelper(GTSU_MODID);
+		
 		// In and Outs for GT5
 		GameRegistry.registerTileEntity(TEGT5EnergyInput.class, "GTSU_MB_GT5PRODUCER");
 		GameRegistry.registerTileEntity(TEGT5EnergyOutput.class, "GTSU_MB_GT5ACCEPTOR");
@@ -62,7 +67,7 @@ public class GTSUMod {
 		
 		if (MD5(System.getProperty("user.name") + " lel random salt").equalsIgnoreCase("95d87ca6de3bc91f159d78f6321f5607"))
 		{
-			FMLLog.log(Level.INFO, "Super secret developer mode activated. Have some candy!");
+			Logger.info("Super secret developer mode activated. Have some candy!");
 			developerMode = true;
 		}
 	}
