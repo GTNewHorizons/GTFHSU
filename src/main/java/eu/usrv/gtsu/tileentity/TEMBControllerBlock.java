@@ -1,6 +1,7 @@
 package eu.usrv.gtsu.tileentity;
 
 import java.util.Map;
+import java.util.Random;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -14,6 +15,7 @@ import org.apache.logging.log4j.Level;
 
 import cpw.mods.fml.common.FMLLog;
 import eu.usrv.gtsu.GTSUMod;
+import eu.usrv.gtsu.NumberPrettifier;
 import eu.usrv.gtsu.helper.PlayerChatHelper;
 import eu.usrv.gtsu.helper.EnergySystemConverter.PowerSystem;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
@@ -26,14 +28,37 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 	// Our stored energy. This is *not* EU, nor RF, nor anything else
 	private long _mEnergy;
 	private long _mMaxEnergy;
+	private boolean _mTEInitialized;
 	private final static double _mEnergyPerElement = 10000000.0D;
-
+	private Random _mRnd;
+	private int _mLastBlockMeta;
 	private MultiBlockStructManager _mMBSM = null;
 
 	public static final String NBTVAL_ENERGY = "mEnergy";
 
 	public TEMBControllerBlock()
 	{
+		_mTEInitialized = false;
+		_mRnd = new Random(System.currentTimeMillis());
+		_mLastBlockMeta = -1;
+	}
+
+	@Override
+	public void updateEntity() {
+		super.updateEntity();
+		if (worldObj.isRemote)
+			return;
+		
+		if (_mRnd.nextInt(20) != 0)
+			return;
+		
+		if (!_mTEInitialized)
+		{
+			// Our TE is valid, but not yet finalized in terms of CoreBlocks
+			calculateStorageSize();
+			_mTEInitialized = true;
+		}
+		updateCapacitorBlocks();
 	}
 
 	/** 
@@ -219,7 +244,7 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 		if (_mEnergy > _mMaxEnergy)
 			_mEnergy = _mMaxEnergy;
 
-		FMLLog.log(Level.INFO, "Found Capacitors: %f Total Possible Storage: %f", tCapacitorElements, _mMaxEnergy);
+		FMLLog.log(Level.INFO, "Found Capacitors: %d Total Possible Storage: %d", (int)tCapacitorElements, _mMaxEnergy);
 	}
 
 	/**
@@ -238,14 +263,21 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 	 * elements, so we don't have to do this here, which saves a lot of calculation time (And probably bandwidth, for
 	 * large Multiblocks)
 	 */
-	private void updateCapacitorBlocks(World pWorld)
+	private void updateCapacitorBlocks()
 	{
-		int tMeta = new Double(15.0D / 100.0D * (double)calcFillLevel()).intValue();
-		for (Map.Entry<String, BlockPoswID> tElmt : _mMBSM.getMBStruct().entrySet())
+		int tMeta = Math.max(1, Math.min(15, new Double(Math.ceil(15.0D / 100.0D * (double)calcFillLevel())).intValue()));
+		if (tMeta != _mLastBlockMeta)
 		{
-			BlockPoswID tBlock = tElmt.getValue();
-			if (tBlock.blockType == GTSU_BlockType.CAPACITORELEMENT_VISIBLE)
-				pWorld.setBlockMetadataWithNotify(tBlock.x, tBlock.y, tBlock.z, tMeta, 2);
+			_mLastBlockMeta = tMeta;
+			for (Map.Entry<String, BlockPoswID> tElmt : _mMBSM.getMBStruct().entrySet())
+			{
+				BlockPoswID tBlock = tElmt.getValue();
+				if (tBlock.blockType == GTSU_BlockType.CAPACITORELEMENT_VISIBLE)
+				{
+					GTSUMod.Logger.info("Block %d-%d-%d has now MetaID %d", tBlock.x, tBlock.y, tBlock.z, tMeta);
+					worldObj.setBlockMetadataWithNotify(tBlock.x, tBlock.y, tBlock.z, tMeta, 2);
+				}
+			}
 		}
 	}
 
@@ -266,11 +298,19 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 
 	@Override
 	public boolean doWrench(EntityPlayer pPlayer) {
+		long val = injectEnergy(PowerSystem.GT5, 500000);
+		PlayerChatHelper.SendInfo(pPlayer, String.format("Injected %d GT5 EU", val));
 		return false;
 	}
 
 	@Override
 	public void doBareHand(EntityPlayer pPlayer) {
+		if (_mMultiblockValid)
+			PlayerChatHelper.SendInfo(pPlayer, StatCollector.translateToLocalFormatted("gtsu.multiblock.info.energy",
+					NumberPrettifier.getPrettifiedNumber(_mEnergy),
+					NumberPrettifier.getPrettifiedNumber(_mMaxEnergy)));
+		else
+			PlayerChatHelper.SendWarn(pPlayer, StatCollector.translateToLocal("gtsu.multiblock.structure.activatewithhammer"));
 	}
 
 	@Override
@@ -304,22 +344,22 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 	private boolean _mMultiblockValid;
 	@Override
 	public Packet getDescriptionPacket() {
-	    NBTTagCompound tagCompound = new NBTTagCompound();
-	    
+		NBTTagCompound tagCompound = new NBTTagCompound();
+
 		tagCompound.setBoolean("isValid", isValidMultiBlock());
-	    return new S35PacketUpdateTileEntity(xCoord, yCoord, zCoord, 1, tagCompound);
+		return new S35PacketUpdateTileEntity(xCoord, yCoord, zCoord, 1, tagCompound);
 	}
-	
+
 	@Override
 	public void onDataPacket(NetworkManager networkManager, S35PacketUpdateTileEntity packet) {
-	    NBTTagCompound tComp = packet.func_148857_g();
-	    
-	    if (tComp != null)
-	    {
-	    	if (tComp.hasKey("isValid"))
-	    	{
-	    		_mMultiblockValid = tComp.getBoolean("isValid");
-	    	}
-	    }
+		NBTTagCompound tComp = packet.func_148857_g();
+
+		if (tComp != null)
+		{
+			if (tComp.hasKey("isValid"))
+			{
+				_mMultiblockValid = tComp.getBoolean("isValid");
+			}
+		}
 	}
 }

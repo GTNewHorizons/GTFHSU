@@ -6,9 +6,9 @@ public class NumberPrettifier {
 	public static String getPrettifiedNumber(long pNumber)
 	{
 		if (pNumber < 1)
-			return "0 EU";
+			return "0 eU";
 		
-		String[] tUnits = {"EU", "kiloEU", "megaEU", "gigaEU", "teraEU", "petaEU", "exaEU"};
+		String[] tUnits = {"eU", "kilo eU", "mega eU", "giga eU", "tera eU", "peta eU", "exa eU"};
 		String tResultStr = "";
 		float tResult = 0;
 		DecimalFormat df = new DecimalFormat("0.00");

@@ -11,3 +11,5 @@ gtsu.multiblock.structure.hasformed=Structure has successfully formed
 gtsu.multiblock.structure.cantforminvalid=Invalid structure; MultiBlock not formed
 gtsu.multiblock.structure.valid=The MultiBlock structure is valid
 gtsu.multiblock.structure.invalid=The MultiBlock structure is invalid
+gtsu.multiblock.structure.activatewithhammer=MultiBlock not yet activated. Right-click with a soft hammer
+gtsu.multiblock.info.energy=Stored energy: %s / %s
