@@ -13,3 +13,4 @@ gtsu.multiblock.structure.valid=The MultiBlock structure is valid
 gtsu.multiblock.structure.invalid=The MultiBlock structure is invalid
 gtsu.multiblock.structure.activatewithhammer=MultiBlock not yet activated. Right-click with a soft hammer
 gtsu.multiblock.info.energy=Stored energy: %s / %s
+gtsu.multiblock.structure.alreadyformedholdshift=The MultiBlock is already formed. Hold shift and hit again to rescan

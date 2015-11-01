@@ -7,6 +7,7 @@ import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IIcon;
+import net.minecraft.world.Explosion;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import eu.usrv.gtsu.GTSUMod;
@@ -68,6 +69,32 @@ public class BlockMBController extends GTSU_GenericBlock {
 			}
 		}
 		return icInvalid2;
+	}
+	
+	private TEMBControllerBlock getTE(World pWorld, int pX, int pY, int pZ)
+	{
+		TEMBControllerBlock tController = null;
+		if (pWorld.getTileEntity(pX, pY, pZ) instanceof TEMBControllerBlock)
+			tController = (TEMBControllerBlock) pWorld.getTileEntity(pX, pY, pZ);
+		
+		return tController;
+	}
+	
+	@Override
+	public void onBlockDestroyedByPlayer(World pWorld, int pX, int pY, int pZ, int pMeta) {
+		TEMBControllerBlock tTE = getTE(pWorld, pX, pY, pZ);
+		if (tTE != null)
+			tTE.destructMultiBlock();
+		
+		super.onBlockDestroyedByPlayer(pWorld, pX, pY, pZ, pMeta);
+	}
+	@Override
+	public void onBlockExploded(World pWorld, int pX, int pY, int pZ, Explosion pExplosion) {
+		TEMBControllerBlock tTE = getTE(pWorld, pX, pY, pZ);
+		if (tTE != null)
+			tTE.destructMultiBlock();
+		
+		super.onBlockExploded(pWorld, pX, pY, pZ, pExplosion);
 	}
 	
 	@Override

@@ -8,6 +8,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
@@ -20,6 +21,7 @@ import eu.usrv.gtsu.helper.PlayerChatHelper;
 import eu.usrv.gtsu.helper.EnergySystemConverter.PowerSystem;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.GTSU_BlockType;
+import eu.usrv.gtsu.multiblock.IMultiBlockComponent;
 import eu.usrv.gtsu.multiblock.manager.MultiBlockStructManager;
 
 // This is our main controller block
@@ -41,6 +43,7 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 		_mTEInitialized = false;
 		_mRnd = new Random(System.currentTimeMillis());
 		_mLastBlockMeta = -1;
+		_mMBSM = new MultiBlockStructManager();
 	}
 
 	@Override
@@ -48,10 +51,10 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 		super.updateEntity();
 		if (worldObj.isRemote)
 			return;
-		
+
 		if (_mRnd.nextInt(20) != 0)
 			return;
-		
+
 		if (!_mTEInitialized)
 		{
 			// Our TE is valid, but not yet finalized in terms of CoreBlocks
@@ -72,6 +75,9 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 	{
 		try
 		{
+			if (!_mMultiblockValid)
+				return false;
+
 			if (_mEnergy >= pEnergyType.getEnergyUnits(pUnits))
 				return true;
 			else
@@ -95,6 +101,9 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 	{
 		try
 		{
+			if (!_mMultiblockValid)
+				return false;
+
 			// We can't check for _mEnergy + pEnergyType.getEnergyUnits(pUnits) here,
 			// because this could result in an overflow of the operation itself.
 			// So instead, we subtract our stored energy from the maximum possible amount,
@@ -129,6 +138,9 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 	public long drainEnergy(PowerSystem pEnergyType, long pUnits, boolean pDrainIncomplete)
 	{
 		long tReturnValue = 0;
+		if (!_mMultiblockValid)
+			return 0;
+
 		// Do we have enough energy stored to provide the full request?
 		if (canDrainPower(pEnergyType, pUnits))
 		{
@@ -166,6 +178,9 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 	public long injectEnergy(PowerSystem pEnergyType, long pUnits, boolean pAcceptIncomplete)
 	{
 		long tReturnValue = 0;
+		if (!_mMultiblockValid)
+			return 0;
+
 		// Do we have enough free space to accept the full offering?
 		if (canInjectPower(pEnergyType, pUnits))
 		{
@@ -196,14 +211,8 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 		_mEnergy = nbttagcompound.getLong(NBTVAL_ENERGY);
 		GTSUMod.Logger.info("Data loaded from NBT: %d", _mEnergy);
 
-		if (_mMBSM == null)
-		{
-			_mMBSM = new MultiBlockStructManager(xCoord, yCoord, zCoord);
-			_mMBSM.loadFromNBT(nbttagcompound, worldObj);
-			GTSUMod.Logger.info("%d Blocks loaded from NBT", _mMBSM.getMBStruct().size());
-		}
-		else
-			GTSUMod.Logger.error("WARNING: Can't load the state of the ControllerBlock TileEntity! The MultiBlock StructureManager is already populated");
+		_mMBSM.loadFromNBT(nbttagcompound, worldObj);
+		GTSUMod.Logger.info("%d Blocks loaded from NBT", _mMBSM.getMBStruct().size());
 	}
 
 	@Override
@@ -214,8 +223,7 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 		nbttagcompound.setLong(NBTVAL_ENERGY, _mEnergy);
 		FMLLog.log(Level.INFO, "Data written to NBT: E: %d", _mEnergy);
 
-		if (_mMBSM != null)
-			_mMBSM.saveToNBT(nbttagcompound);
+		_mMBSM.saveToNBT(nbttagcompound);
 	}
 
 	/**
@@ -224,9 +232,6 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 	 */
 	private void calculateStorageSize()
 	{
-		if (_mMBSM == null)
-			return;
-
 		double tCapacitorElements = 0.0D;
 		for (Map.Entry<String, BlockPoswID> tElmt : _mMBSM.getMBStruct().entrySet())
 		{
@@ -266,6 +271,7 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 	private void updateCapacitorBlocks()
 	{
 		int tMeta = Math.max(1, Math.min(15, new Double(Math.ceil(15.0D / 100.0D * (double)calcFillLevel())).intValue()));
+		
 		if (tMeta != _mLastBlockMeta)
 		{
 			_mLastBlockMeta = tMeta;
@@ -281,17 +287,51 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 		}
 	}
 
+	/**
+	 * Invalidates and resets the entire structure.
+	 * Mostly used for the CoreBlocks; Since those aren't TEs
+	 */
+	public void destructMultiBlock()
+	{
+		for (Map.Entry<String, BlockPoswID> tElmt : _mMBSM.getMBStruct().entrySet())
+		{
+			BlockPoswID tBlock = tElmt.getValue();
+			switch (tBlock.blockType)
+			{
+			case CAPACITORELEMENT_VISIBLE:
+				worldObj.setBlockMetadataWithNotify(tBlock.x, tBlock.y, tBlock.z, 0, 2);
+				break;
+
+			case OUTPUT:
+			case INPUT:
+			case LASERLINK:
+			case REDSTONE:
+				TileEntity teAtPos = worldObj.getTileEntity(tBlock.x, tBlock.y, tBlock.z);
+				if (teAtPos instanceof IMultiBlockComponent)
+					((IMultiBlockComponent)teAtPos).updateMBStruct(false, null);
+				else
+					GTSUMod.Logger.error("TileEntity at Position x[%d] y[%d] z[%d] should be an instance of IMultiBlockComponent, but it is not!");
+				break;
+			
+			case AIR:
+			case CONTROLLER:
+			case CAPACITORELEMENT:
+			case INVALID:
+			case FRAME:
+			case GLASS:
+				break;
+			}
+		}
+	}
+
 	@Override
 	public boolean doScrewdriver(EntityPlayer pPlayer) {
-		if (_mMBSM != null)
-		{
-			if (_mMBSM.isValidMultiBlock())
-				PlayerChatHelper.SendInfo(pPlayer, StatCollector.translateToLocal("gtsu.multiblock.structure.valid"));
-			else
-				PlayerChatHelper.SendInfo(pPlayer, StatCollector.translateToLocal("gtsu.multiblock.structure.invalid"));
-		}
+		if (_mMBSM.isValidMultiBlock())
+			PlayerChatHelper.SendInfo(pPlayer, StatCollector.translateToLocal("gtsu.multiblock.structure.valid"));
 		else
-			PlayerChatHelper.SendInfo(pPlayer, StatCollector.translateToLocal("gtsu.multiblock.structure.notformedyet"));
+			PlayerChatHelper.SendInfo(pPlayer, StatCollector.translateToLocal("gtsu.multiblock.structure.invalid"));
+
+		//PlayerChatHelper.SendInfo(pPlayer, StatCollector.translateToLocal("gtsu.multiblock.structure.notformedyet"));
 
 		return false;
 	}
@@ -303,6 +343,9 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 		return false;
 	}
 
+	/*
+	 * Temp-Function for now. Displays current storage/max storage 
+	 */
 	@Override
 	public void doBareHand(EntityPlayer pPlayer) {
 		if (_mMultiblockValid)
@@ -318,13 +361,21 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 		return false;
 	}
 
+	/* 
+	 * Scan the multiblock on a softhammer-hit.
+	 * If the structure is already formed, player needs to hold shift while right-clicking to
+	 * reset and rescan the structure
+	 */
 	@Override
 	public boolean doSoftHammer(EntityPlayer pPlayer) {
-		PlayerChatHelper.SendInfo(pPlayer, StatCollector.translateToLocal("gtsu.multiblock.structure.analyzing"));
-		if (_mMBSM == null)
-			_mMBSM = new MultiBlockStructManager(xCoord, yCoord, zCoord);
+		if (_mMBSM.isValidMultiBlock() && !pPlayer.isSneaking())
+		{
+			PlayerChatHelper.SendInfo(pPlayer, StatCollector.translateToLocal("gtsu.multiblock.structure.alreadyformedholdshift"));
+			return false;
+		}
 
-		if (_mMBSM.scanMultiblockStructure(pPlayer.worldObj))
+		PlayerChatHelper.SendInfo(pPlayer, StatCollector.translateToLocal("gtsu.multiblock.structure.analyzing"));
+		if (_mMBSM.scanMultiblockStructure(pPlayer.worldObj, xCoord, yCoord, zCoord))
 			PlayerChatHelper.SendInfo(pPlayer, StatCollector.translateToLocal("gtsu.multiblock.structure.hasformed"));
 		else
 			PlayerChatHelper.SendError(pPlayer, StatCollector.translateToLocal("gtsu.multiblock.structure.cantforminvalid"));
@@ -334,10 +385,12 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 		return true;
 	}
 
+	/**
+	 * More of an internal function to get the up-to-date status of the multiblock
+	 * @return
+	 */
 	public boolean isValidMultiBlock() {
-		if (_mMBSM != null)
-			_mMultiblockValid = _mMBSM.isValidMultiBlock();
-
+		_mMultiblockValid = _mMBSM.isValidMultiBlock();
 		return _mMultiblockValid;
 	}
 

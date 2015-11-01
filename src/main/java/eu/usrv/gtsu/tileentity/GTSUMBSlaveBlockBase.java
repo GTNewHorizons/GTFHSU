@@ -90,6 +90,13 @@ public abstract class GTSUMBSlaveBlockBase extends GTSUTileEntityBase implements
 		}
 	}
 
+	public final void destructMultiBlock()
+	{
+		TEMBControllerBlock tMaster = getMaster();
+		if (tMaster != null)
+			tMaster.destructMultiBlock();
+	}
+	
 	@Override
 	public final void updateMBStruct(boolean pStructValid, BlockPoswID pControllerBlock) {
 		_mStructureValid = pStructValid;

@@ -32,6 +32,8 @@ import eu.usrv.gtsu.multiblock.MultiBlocks;
 
 public class MultiBlockStructManager
 {
+	private static final String STR_NOTSET = "notset";
+	private static final String NBTVAL_SCANNED_BLOCKS = "scannedBlocks";
 	private Map<String, BlockPoswID> tBlocksToScan = new HashMap<String, BlockPoswID>();
 	private Map<String, BlockPoswID> newBlocksToScan = new HashMap<String, BlockPoswID>();
 	private Map<String, BlockPoswID> scannedBlocks = new HashMap<String, BlockPoswID>();
@@ -40,6 +42,7 @@ public class MultiBlockStructManager
 	private Random _mRnd;
 	private long lastMBScan;
 	private int mbInstanceID;
+	private boolean _mBlocksSavedToNBT;
 
 	private MB_BlockState _mMBState;
 	private int[][] offSets = new int[][]
@@ -52,13 +55,12 @@ public class MultiBlockStructManager
 			{0, 0, -1} 
 			};
 
-	public MultiBlockStructManager(int pX, int pY, int pZ)
+	public MultiBlockStructManager()
 	{
-		tBlocksToScan.put("notset", new BlockPoswID(pX, pY, pZ));
-
 		_mRnd = new Random(System.currentTimeMillis());
 		mbInstanceID = _mRnd.nextInt(Integer.MAX_VALUE);
 		_mMultiblockIsValid = false;
+		_mBlocksSavedToNBT = false;
 	}
 
 	public Map<String, BlockPoswID> getMBStruct()
@@ -72,8 +74,11 @@ public class MultiBlockStructManager
 	 * TODO: Make this a runnable
 	 * @param pWorld
 	 */
-	public boolean scanMultiblockStructure(World pWorld)
+	public boolean scanMultiblockStructure(World pWorld, int pX, int pY, int pZ)
 	{
+		tBlocksToScan = new HashMap<String, BlockPoswID>();
+		tBlocksToScan.put(STR_NOTSET, new BlockPoswID(pX, pY, pZ));
+		
 		long start = System.currentTimeMillis();
 		if (start - lastMBScan < 1000) // Prevent MultiBlock scan-spam
 			return false;
@@ -93,7 +98,7 @@ public class MultiBlockStructManager
 
 				// Probably an external injected Block, or our initial Block. Populate ID, Meta Values and blocktype now
 				// For any other found block, these values are checked and set while scanning all adjacent blocks
-				if (b.blockID.equals("notset"))
+				if (b.blockID.equals(STR_NOTSET))
 				{
 					GTSUMod.Logger.info("Block info not set, probably our initial block");
 					int tBlockMeta = tCurrentBlock.getDamageValue(pWorld, b.x, b.y, b.z);
@@ -165,7 +170,9 @@ public class MultiBlockStructManager
 						GTSUMod.Logger.info("Found a Multiblock component: %s", tBlockPos.blockType);
 						// Make sure we only add those components to the scanlist we
 						// haven't analyzed yet, or we found in this loop already, or are already set for a upcomming scan cycle
-						if (!scannedBlocks.containsKey(tBlockPos.blockID) && !newBlocksToScan.containsKey(tBlockPos.blockID) && !tBlocksToScan.containsKey(tBlockPos.blockID))
+						if (!scannedBlocks.containsKey(tBlockPos.blockID) && 
+								!newBlocksToScan.containsKey(tBlockPos.blockID) && 
+								!tBlocksToScan.containsKey(tBlockPos.blockID))
 						{
 							//GTSUMod.Logger.info("Block enqueued for next scan cycle");	
 							newBlocksToScan.put(tBlockPos.blockID, tBlockPos);
@@ -202,6 +209,7 @@ public class MultiBlockStructManager
 		{
 			_mMultiblockIsValid = true;
 			notifyTEComponents(pWorld, tMasterBlock);
+			_mBlocksSavedToNBT = false;
 			return true;
 		}
 		else
@@ -252,40 +260,52 @@ public class MultiBlockStructManager
 		Map<String, BlockPosHelper.BlockPoswID> tLoadedBlocks = new HashMap<String, BlockPosHelper.BlockPoswID>();
 		BlockPoswID tMasterBlock = null;
 
-		NBTTagList tBlocks = pCompound.getTagList("scannedBlocks", Constants.NBT.TAG_COMPOUND);
-		for (int i = 0; i < tBlocks.tagCount(); i++)
+		if (!pCompound.hasKey(NBTVAL_SCANNED_BLOCKS))
+			return;
+		try
 		{
-			NBTTagCompound tSubComp = tBlocks.getCompoundTagAt(i);
-			BlockPoswID tBlock = new BlockPoswID(tSubComp);
-			if (tBlock.blockType == GTSU_BlockType.CONTROLLER)
+			NBTTagList tBlocks = pCompound.getTagList(NBTVAL_SCANNED_BLOCKS, Constants.NBT.TAG_COMPOUND);
+			for (int i = 0; i < tBlocks.tagCount(); i++)
 			{
-				if (tMasterBlock == null)
-					tMasterBlock = tBlock;
-				else
+				NBTTagCompound tSubComp = tBlocks.getCompoundTagAt(i);
+				BlockPoswID tBlock = new BlockPoswID(tSubComp);
+				if (tBlock.blockType == GTSU_BlockType.CONTROLLER)
 				{
-					//Something weird happend. Don't continue to load as there can never be 2 masters
-					tLoadedBlocks = null;
-					break;
+					if (tMasterBlock == null)
+						tMasterBlock = tBlock;
+					else
+					{
+						//Something weird happend. Don't continue to load as there can never be 2 masters
+						tLoadedBlocks = null;
+						break;
+					}
 				}
+				tLoadedBlocks.put(tBlock.blockID, tBlock);
 			}
-			tLoadedBlocks.put(tBlock.blockID, tBlock);
-		}
 
-		// Only continue if the loaded blocks didn't cancel, and we have a master block
-		if (tLoadedBlocks != null && tMasterBlock != null)
-		{
-			// Now validate the structure we just loaded
-			if (checkForValidStructure(tLoadedBlocks))
+			// Only continue if the loaded blocks didn't cancel, and we have a master block
+			if (tLoadedBlocks != null && tMasterBlock != null)
 			{
-				// The List from NBT is valid, now set the actual list of blocks to the one
-				// we've loaded and trigger the validate process
-				_mMultiblockIsValid = true;
-				scannedBlocks = tLoadedBlocks;
-				//notifyTEComponents(pWorldObject, tMasterBlock); // Does not work as the worldObject seems to be empty. Need to save the TE's on their own
+				// Now validate the structure we just loaded
+				if (checkForValidStructure(tLoadedBlocks))
+				{
+					// The List from NBT is valid, now set the actual list of blocks to the one
+					// we've loaded and trigger the validate process
+					_mMultiblockIsValid = true;
+					scannedBlocks = tLoadedBlocks;
+					//notifyTEComponents(pWorldObject, tMasterBlock); // Does not work as the worldObject seems to be empty. Need to save the TE's on their own
+				}
+				// Something went wrong, the structure from NBT seems to be invalid.
+				// Either something went wrong while saving, or we have somekind of world corruption
+				// TODO: Check if we need to do something here
 			}
-			// Something went wrong, the structure from NBT seems to be invalid.
-			// Either something went wrong while saving, or we have somekind of world corruption
-			// TODO: Check if we need to do something here
+		}
+		catch (Exception e)
+		{
+			// NBT Tag is invalid or got damaged. Reset entire Structure
+			_mMultiblockIsValid = false;
+			_mBlocksSavedToNBT = false;
+			scannedBlocks = new HashMap<String, BlockPosHelper.BlockPoswID>();
 		}
 	}
 
@@ -302,12 +322,16 @@ public class MultiBlockStructManager
 			return;
 		}
 
-		NBTTagList tBlocks = new NBTTagList();
-		for (Entry<String, BlockPoswID> tBlockMap : scannedBlocks.entrySet())
-			tBlocks.appendTag(tBlockMap.getValue().getTagCompound());
+		if (!_mBlocksSavedToNBT)
+		{
+			NBTTagList tBlocks = new NBTTagList();
+			for (Entry<String, BlockPoswID> tBlockMap : scannedBlocks.entrySet())
+				tBlocks.appendTag(tBlockMap.getValue().getTagCompound());
 
-		pCompound.setTag("scannedBlocks", tBlocks);
-		GTSUMod.Logger.info("%d Blocks written to NBT", tBlocks.tagCount());
+			pCompound.setTag(NBTVAL_SCANNED_BLOCKS, tBlocks);
+			GTSUMod.Logger.info("%d Blocks written to NBT", tBlocks.tagCount());
+			_mBlocksSavedToNBT = true;
+		}
 	}
 
 	/**
@@ -315,16 +339,17 @@ public class MultiBlockStructManager
 	 * @param pWorld
 	 * @return
 	 */
-	private boolean randomCheckStructure(World pWorld)
+	public boolean randomCheckStructure(World pWorld)
 	{
 		long tCurrentMilis = System.currentTimeMillis();
 		boolean tFlag = false;
 		int tNumBlocks = scannedBlocks.size(); // Number of all scanned and validated blocks
-		int randomAmount = (int) Math.min(20, Math.max(1, Math.floor(tNumBlocks / 4))); // check at least 1, max 20 blocks on a random scan
+		int randomAmount = (int) Math.min(100, Math.max(1, Math.floor(tNumBlocks / 4))); // check at least 1, max 100 blocks on a random scan. Covers 1/4 of the struct up to 400 blocks
 
 		ArrayList<Integer> idsToScan = new ArrayList<Integer>();
 
-		// Do maximum 25 cycles. Should prevent problems with small builds
+		// Do maximum 150 cycles. Hardcoded infinite-loop prevention with small builds
+		// Should never happen but... Just to be sure
 		int tLoopWatch = 0;
 		do
 		{
@@ -333,18 +358,8 @@ public class MultiBlockStructManager
 				idsToScan.add(tRndID);
 			tLoopWatch++;
 
-		} while(idsToScan.size() < randomAmount && tLoopWatch < 25);
+		} while(idsToScan.size() < randomAmount && tLoopWatch < 150);
 
-		/*if (tCurrentMilis - _mLastRandomScan > 10000)
-		{
-			// Some time has passed; Maybe we need to do a full scan of all blocks?
-			// All TE will invalidate the MB Struct if broken, so should not be necessary
-		}
-		else
-		{
-			// Do a quick scan of a few blocks and check if they are still there
-
-		}*/
 		for (int idx : idsToScan)
 		{
 			// The Block in our ScannedBlocks List to verify
@@ -361,6 +376,13 @@ public class MultiBlockStructManager
 			}
 		}
 
+		if (!tFlag)
+		{
+			scannedBlocks = new HashMap<String, BlockPosHelper.BlockPoswID>();
+			_mBlocksSavedToNBT = false;
+			_mMultiblockIsValid = false;
+		}
+		
 		return tFlag;
 	}
 

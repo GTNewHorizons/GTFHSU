@@ -10,8 +10,10 @@ import eu.usrv.gtsu.GTSUMod;
 import eu.usrv.gtsu.blocks.itemblocks.ItemBlockGT5EnergyUnit;
 import eu.usrv.gtsu.multiblock.IMultiBlockComponent;
 import eu.usrv.gtsu.proxy.ClientProxy;
+import eu.usrv.gtsu.tileentity.GTSUMBSlaveBlockBase;
 import eu.usrv.gtsu.tileentity.TEGT5EnergyInput;
 import eu.usrv.gtsu.tileentity.TEGT5EnergyOutput;
+import eu.usrv.gtsu.tileentity.TEMBControllerBlock;
 import eu.usrv.gtsu.tileentity.TileEntityGTSU;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockPistonBase;
@@ -26,6 +28,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IIcon;
+import net.minecraft.world.Explosion;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.oredict.OreDictionary;
@@ -85,6 +88,32 @@ public class BlockGT5EnergyUnit extends GTSU_GenericBlock {
 	    return true;
 	}
     
+	private GTSUMBSlaveBlockBase getTE(World pWorld, int pX, int pY, int pZ)
+	{
+		GTSUMBSlaveBlockBase tController = null;
+		if (pWorld.getTileEntity(pX, pY, pZ) instanceof GTSUMBSlaveBlockBase)
+			tController = (GTSUMBSlaveBlockBase) pWorld.getTileEntity(pX, pY, pZ);
+		
+		return tController;
+	}
+	
+	@Override
+	public void onBlockDestroyedByPlayer(World pWorld, int pX, int pY, int pZ, int pMeta) {
+		GTSUMBSlaveBlockBase tTE = getTE(pWorld, pX, pY, pZ);
+		if (tTE != null)
+			tTE.destructMultiBlock();
+		
+		super.onBlockDestroyedByPlayer(pWorld, pX, pY, pZ, pMeta);
+	}
+	@Override
+	public void onBlockExploded(World pWorld, int pX, int pY, int pZ, Explosion pExplosion) {
+		GTSUMBSlaveBlockBase tTE = getTE(pWorld, pX, pY, pZ);
+		if (tTE != null)
+			tTE.destructMultiBlock();
+		
+		super.onBlockExploded(pWorld, pX, pY, pZ, pExplosion);
+	}
+	
 	@Override
 	public final TileEntity createTileEntity(World pWorld, int pMeta) {
 		if (pMeta == ID_Acceptor)
