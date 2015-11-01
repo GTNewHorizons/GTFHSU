@@ -5,4 +5,11 @@ public class Enums {
 	{
 		GT5;
 	}
+	
+	public enum EDataLoadState
+	{
+		NoData,
+		Loaded,
+		LoadedVerified
+	}
 }

@@ -8,6 +8,8 @@ import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.oredict.OreDictionary;
+import eu.usrv.gtsu.GTSUMod;
+import eu.usrv.gtsu.helper.Enums.EDataLoadState;
 import eu.usrv.gtsu.multiblock.BlockPosHelper.BlockPoswID;
 import eu.usrv.gtsu.multiblock.IMultiBlockComponent;
 import gregtech.api.GregTech_API;
@@ -20,8 +22,11 @@ import gregtech.api.util.GT_Utility;
  *
  */
 public abstract class GTSUMBSlaveBlockBase extends GTSUTileEntityBase implements IMultiBlockComponent {
+	private static final String NBTVAL_MASTER_BLOCK = "mMasterBlock";
+	private static final String NBTVAL_IS_VALID = "isValid";
 	protected boolean _mStructureValid; // Is the MultiBlock valid
 	protected BlockPoswID _mMasterBlock; // Reference to our MultiBlock Master
+	private EDataLoadState _mLoadedDataState;
 
 	/**
 	 * Get our Multiblock's MasterBlock. 
@@ -64,6 +69,20 @@ public abstract class GTSUMBSlaveBlockBase extends GTSUTileEntityBase implements
 		
 		if (getRandomNumber(20) != 0)
 			return;
+
+		if (_mLoadedDataState == _mLoadedDataState.Loaded)
+		{
+			TileEntity tMasterBlock = worldObj.getTileEntity(_mMasterBlock.x, _mMasterBlock.y, _mMasterBlock.z);
+			if (tMasterBlock != null && tMasterBlock instanceof TEMBControllerBlock)
+			{
+				_mStructureValid = ((TEMBControllerBlock)tMasterBlock).isValidMultiBlock();
+				worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+				if (_mStructureValid)
+					_mLoadedDataState = EDataLoadState.LoadedVerified;
+				else
+					_mLoadedDataState = EDataLoadState.NoData;
+			}
+		}
 	}
 	
 	@Override
@@ -71,27 +90,23 @@ public abstract class GTSUMBSlaveBlockBase extends GTSUTileEntityBase implements
 		super.writeToNBT(pNBT);
 		if (_mStructureValid)
 			if (_mMasterBlock != null)
-				pNBT.setTag("mMasterBlock", _mMasterBlock.getTagCompound());
+				pNBT.setTag(NBTVAL_MASTER_BLOCK, _mMasterBlock.getTagCompound());
 	}
 
 
 	@Override
 	public void readFromNBT(NBTTagCompound pNBT) {
 		super.readFromNBT(pNBT);
-		if (pNBT.hasKey("mMasterBlock"))
+		if (pNBT.hasKey(NBTVAL_MASTER_BLOCK))
 		{
-			_mMasterBlock = new BlockPoswID(pNBT.getCompoundTag("mMasterBlock"));
-			TileEntity tMasterBlock = worldObj.getTileEntity(_mMasterBlock.x, _mMasterBlock.y, _mMasterBlock.z);
-			if (tMasterBlock != null && tMasterBlock instanceof TEMBControllerBlock)
-			{
-				_mStructureValid = ((TEMBControllerBlock)tMasterBlock).isValidMultiBlock();
-				worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
-			}
+			_mMasterBlock = new BlockPoswID(pNBT.getCompoundTag(NBTVAL_MASTER_BLOCK));
+			_mLoadedDataState = EDataLoadState.Loaded;
 		}
 	}
 
 	public final void destructMultiBlock()
 	{
+		GTSUMod.Logger.info("destructMultiBlock() in GTSUMBSlaveBlockBase");
 		TEMBControllerBlock tMaster = getMaster();
 		if (tMaster != null)
 			tMaster.destructMultiBlock();
@@ -108,7 +123,7 @@ public abstract class GTSUMBSlaveBlockBase extends GTSUTileEntityBase implements
 	public Packet getDescriptionPacket() {
 		NBTTagCompound tagCompound = new NBTTagCompound();
 
-		tagCompound.setBoolean("isValid", _mStructureValid);
+		tagCompound.setBoolean(NBTVAL_IS_VALID, _mStructureValid);
 		return new S35PacketUpdateTileEntity(xCoord, yCoord, zCoord, 1, tagCompound);
 	}
 
@@ -118,10 +133,8 @@ public abstract class GTSUMBSlaveBlockBase extends GTSUTileEntityBase implements
 
 		if (tComp != null)
 		{
-			if (tComp.hasKey("isValid"))
-			{
-				_mStructureValid = tComp.getBoolean("isValid");
-			}
+			if (tComp.hasKey(NBTVAL_IS_VALID))
+				_mStructureValid = tComp.getBoolean(NBTVAL_IS_VALID);
 		}
 	}
 }

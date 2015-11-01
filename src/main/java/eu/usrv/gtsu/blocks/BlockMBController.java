@@ -1,5 +1,6 @@
 package eu.usrv.gtsu.blocks;
 
+import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import ic2.core.IC2;
@@ -13,6 +14,7 @@ import net.minecraft.world.World;
 import eu.usrv.gtsu.GTSUMod;
 import eu.usrv.gtsu.blocks.itemblocks.ItemBlockGT5EnergyUnit;
 import eu.usrv.gtsu.blocks.itemblocks.ItemBlockMBController;
+import eu.usrv.gtsu.tileentity.GTSUMBSlaveBlockBase;
 import eu.usrv.gtsu.tileentity.TEGT5EnergyInput;
 import eu.usrv.gtsu.tileentity.TEGT5EnergyOutput;
 import eu.usrv.gtsu.tileentity.TEMBControllerBlock;
@@ -81,22 +83,40 @@ public class BlockMBController extends GTSU_GenericBlock {
 	}
 	
 	@Override
-	public void onBlockDestroyedByPlayer(World pWorld, int pX, int pY, int pZ, int pMeta) {
+	public void onBlockPreDestroy(World pWorld, int pX, int pY, int pZ, int pMeta) {
+		GTSUMod.Logger.info("onBlockPreDestroy in EnergyUnit");
 		TEMBControllerBlock tTE = getTE(pWorld, pX, pY, pZ);
 		if (tTE != null)
 			tTE.destructMultiBlock();
+		else
+			GTSUMod.Logger.info("...reset failed. No masterTE found");
+		super.onBlockPreDestroy(pWorld, pX, pY, pZ, pMeta);
+	}
+
+	/*
+	@Override
+	public void onBlockDestroyedByPlayer(World pWorld, int pX, int pY, int pZ, int pMeta) {
+		GTSUMod.Logger.info("MasterBlock destroyed");
+		TEMBControllerBlock tTE = getTE(pWorld, pX, pY, pZ);
+		if (tTE != null)
+			tTE.destructMultiBlock();
+		else
+			GTSUMod.Logger.info("...reset failed. No masterTE found");			
 		
 		super.onBlockDestroyedByPlayer(pWorld, pX, pY, pZ, pMeta);
 	}
 	@Override
 	public void onBlockExploded(World pWorld, int pX, int pY, int pZ, Explosion pExplosion) {
+		GTSUMod.Logger.info("MasterBlock exploded");
 		TEMBControllerBlock tTE = getTE(pWorld, pX, pY, pZ);
 		if (tTE != null)
 			tTE.destructMultiBlock();
+		else
+			GTSUMod.Logger.info("...reset failed. No masterTE found");
 		
 		super.onBlockExploded(pWorld, pX, pY, pZ, pExplosion);
 	}
-	
+	*/
 	@Override
 	public final boolean hasTileEntity(int metadata){
 	    return true;

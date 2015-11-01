@@ -299,6 +299,7 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 			switch (tBlock.blockType)
 			{
 			case CAPACITORELEMENT_VISIBLE:
+				GTSUMod.Logger.info("Resetting visible Capacitor at %d %d %d", tBlock.x, tBlock.y, tBlock.z);
 				worldObj.setBlockMetadataWithNotify(tBlock.x, tBlock.y, tBlock.z, 0, 2);
 				break;
 
@@ -306,6 +307,7 @@ public class TEMBControllerBlock extends GTSUTileEntityBase
 			case INPUT:
 			case LASERLINK:
 			case REDSTONE:
+				GTSUMod.Logger.info("Invalidating TE at %d %d %d", tBlock.x, tBlock.y, tBlock.z);
 				TileEntity teAtPos = worldObj.getTileEntity(tBlock.x, tBlock.y, tBlock.z);
 				if (teAtPos instanceof IMultiBlockComponent)
 					((IMultiBlockComponent)teAtPos).updateMBStruct(false, null);
