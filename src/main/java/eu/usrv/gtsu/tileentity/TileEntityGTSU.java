@@ -1,14 +1,5 @@
 package eu.usrv.gtsu.tileentity;
 
-import org.apache.logging.log4j.Level;
-
-import cpw.mods.fml.common.FMLLog;
-import cpw.mods.fml.common.Optional.Method;
-import eu.usrv.gtsu.TierHelper;
-import gregtech.api.GregTech_API;
-import gregtech.api.interfaces.tileentity.IEnergyConnected;
-import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.util.GT_Utility;
 import static eu.usrv.gtsu.TierHelper.V;
 import ic2.api.energy.event.EnergyTileLoadEvent;
 import ic2.api.energy.event.EnergyTileUnloadEvent;
@@ -23,21 +14,14 @@ import ic2.core.block.invslot.InvSlotDischarge;
 import ic2.core.init.MainConfig;
 import ic2.core.util.ConfigUtil;
 import ic2.core.util.StackUtil;
-import ic2.core.util.Util;
-import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.StatCollector;
-import net.minecraft.world.World;
-import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.IFluidHandler;
-import cpw.mods.fml.common.Optional;
+import eu.usrv.gtsu.TierHelper;
 
 public class TileEntityGTSU extends TileEntityInventory implements INetworkClientTileEntityEventListener, IEnergySink, IEnergySource  {
 	public static final String NBTVAL_REDSTONE_MODE = "redstoneMode";

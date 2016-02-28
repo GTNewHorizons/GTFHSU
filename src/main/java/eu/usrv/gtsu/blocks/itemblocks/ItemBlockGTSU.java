@@ -1,18 +1,17 @@
 package eu.usrv.gtsu.blocks.itemblocks;
 
+import static eu.usrv.gtsu.TierHelper.V;
+
 import java.util.List;
 
-import eu.usrv.gtsu.NumberPrettifier;
-import eu.usrv.gtsu.TierHelper;
-import eu.usrv.gtsu.tileentity.TileEntityGTSU;
-import static eu.usrv.gtsu.TierHelper.V;
-import static eu.usrv.gtsu.TierHelper.VS;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.IIcon;
 import net.minecraft.util.StatCollector;
+import eu.usrv.gtsu.NumberPrettifier;
+import eu.usrv.gtsu.TierHelper;
+import eu.usrv.gtsu.tileentity.TileEntityGTSU;
 
 public class ItemBlockGTSU extends ItemBlock {
 

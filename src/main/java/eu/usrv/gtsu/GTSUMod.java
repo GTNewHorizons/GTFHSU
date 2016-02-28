@@ -1,12 +1,5 @@
 package eu.usrv.gtsu;
 
-import java.security.MessageDigest;
-
-import org.apache.logging.log4j.Level;
-
-import scala.util.control.Exception;
-import net.minecraft.block.material.Material;
-import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.Mod.Instance;
@@ -15,21 +8,11 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.registry.GameRegistry;
-import eu.usrv.gtsu.blocks.BlockGT5EnergyUnit;
-import eu.usrv.gtsu.blocks.BlockMBController;
-import eu.usrv.gtsu.blocks.CoreBlock;
 import eu.usrv.gtsu.blocks.GTSUBlock;
-import eu.usrv.gtsu.blocks.itemblocks.ItemBlockCoreBlock;
-import eu.usrv.gtsu.blocks.itemblocks.ItemBlockGT5EnergyUnit;
 import eu.usrv.gtsu.blocks.itemblocks.ItemBlockGTSU;
 import eu.usrv.gtsu.gui.GuiHandler;
 import eu.usrv.gtsu.helper.LogHelper;
-import eu.usrv.gtsu.multiblock.MultiBlockItemBlock;
-import eu.usrv.gtsu.multiblock.MultiBlocks;
 import eu.usrv.gtsu.proxy.CommonProxy;
-import eu.usrv.gtsu.tileentity.TEGT5EnergyInput;
-import eu.usrv.gtsu.tileentity.TEGT5EnergyOutput;
-import eu.usrv.gtsu.tileentity.TEMBControllerBlock;
 import eu.usrv.gtsu.tileentity.TileEntityGTSU;
 
 @Mod(modid = GTSUMod.GTSU_MODID, name = "GTSU Mod", version = "GRADLETOKEN_VERSION", dependencies = "required-after:IC2")
@@ -50,20 +33,7 @@ public class GTSUMod {
 	public void preInit(FMLPreInitializationEvent event){
 		Logger = new LogHelper(GTSU_MODID);
 		
-		// In and Outs for GT5
-		GameRegistry.registerTileEntity(TEGT5EnergyInput.class, "GTSU_MB_GT5PRODUCER");
-		GameRegistry.registerTileEntity(TEGT5EnergyOutput.class, "GTSU_MB_GT5ACCEPTOR");
-		BlockGT5EnergyUnit tEnUnit = new BlockGT5EnergyUnit();
-
-		// Controller Block
-		GameRegistry.registerTileEntity(TEMBControllerBlock.class, "GTSU_MB_CONTROLLER");
-		BlockMBController tController = new BlockMBController();
-		
-		// Non-TE blocks; Glass, Frame
-		GameRegistry.registerBlock(new MultiBlocks(), MultiBlockItemBlock.class, String.format("GTSU_MultiBlock"));
-		//	Non-TE block: Core
-		GameRegistry.registerBlock(new CoreBlock(Material.iron), ItemBlockCoreBlock.class, "CoreBlock");
-
+		registerSingleIC2StorageBlocks();
 		
 		if (MD5(System.getProperty("user.name") + " lel random salt").equalsIgnoreCase("95d87ca6de3bc91f159d78f6321f5607"))
 		{
@@ -74,11 +44,11 @@ public class GTSUMod {
 
 	private void registerSingleIC2StorageBlocks()
 	{
-		//GameRegistry.registerTileEntity(TileEntityGTSU.class, "GTSU_TE");
-		/*		for (int i = 0; i < TierHelper.V.length; i++)
+		GameRegistry.registerTileEntity(TileEntityGTSU.class, "GTSU_TE");
+				for (int i = 0; i < TierHelper.V.length; i++)
 		{
 			GameRegistry.registerBlock(new GTSUBlock(i), ItemBlockGTSU.class, String.format("GTSU_Tier_%d", i));
-		}*/
+		}
 	}
 	
 	@EventHandler

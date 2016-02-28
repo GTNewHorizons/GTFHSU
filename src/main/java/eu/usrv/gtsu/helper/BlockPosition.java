@@ -1,11 +1,11 @@
 package eu.usrv.gtsu.helper;
 
 
-import net.minecraft.tileentity.TileEntity;
-import net.minecraftforge.common.util.ForgeDirection;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.common.util.ForgeDirection;
 
 public class BlockPosition {
 	public int x;

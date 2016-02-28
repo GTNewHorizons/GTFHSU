@@ -1,14 +1,13 @@
 package eu.usrv.gtsu.container;
 
 import ic2.core.ContainerFullInv;
-import ic2.core.block.wiring.TileEntityElectricBlock;
 import ic2.core.slot.SlotArmor;
 import ic2.core.slot.SlotInvSlot;
 
 import java.util.List;
 
-import eu.usrv.gtsu.tileentity.TileEntityGTSU;
 import net.minecraft.entity.player.EntityPlayer;
+import eu.usrv.gtsu.tileentity.TileEntityGTSU;
 
 public class ContainerGTSU extends ContainerFullInv<TileEntityGTSU> {
 

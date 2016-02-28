@@ -1,6 +1,5 @@
 package eu.usrv.gtsu.gui;
 
-import ic2.core.block.wiring.TileEntityElectricBlock;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
